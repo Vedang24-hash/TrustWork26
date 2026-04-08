@@ -1,0 +1,14 @@
+C:\Users\PB\OneDrive\Desktop\trustwork\democontract\target\release\deps\serde-79e2bbe682dc4799.d: C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs C:\Users\PB\OneDrive\Desktop\trustwork\democontract\target\release\build\serde-ae2f9a9d661470d3\out/private.rs
+
+C:\Users\PB\OneDrive\Desktop\trustwork\democontract\target\release\deps\libserde-79e2bbe682dc4799.rlib: C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs C:\Users\PB\OneDrive\Desktop\trustwork\democontract\target\release\build\serde-ae2f9a9d661470d3\out/private.rs
+
+C:\Users\PB\OneDrive\Desktop\trustwork\democontract\target\release\deps\libserde-79e2bbe682dc4799.rmeta: C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs C:\Users\PB\OneDrive\Desktop\trustwork\democontract\target\release\build\serde-ae2f9a9d661470d3\out/private.rs
+
+C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs:
+C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs:
+C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs:
+C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs:
+C:\Users\PB\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs:
+C:\Users\PB\OneDrive\Desktop\trustwork\democontract\target\release\build\serde-ae2f9a9d661470d3\out/private.rs:
+
+# env-dep:OUT_DIR=C:\\Users\\PB\\OneDrive\\Desktop\\trustwork\\democontract\\target\\release\\build\\serde-ae2f9a9d661470d3\\out

@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { truncateAddr, formatXLM, formatDate, resolveDispute, CONTRACT_STATES } from '../utils/contract'
+import { truncateAddr, formatXLM, formatDate, CONTRACT_STATES, applyResolve } from '../utils/contract'
+import { sorobanResolveDispute, NETWORK } from '../utils/stellar'
 
-export default function Arbitration({ contracts, onUpdate }) {
+export default function Arbitration({ contracts, onUpdate, wallet, openTx, txSubmitting, txSuccess, txError }) {
   const disputed = contracts.filter(c => c.status === CONTRACT_STATES.DISPUTED)
   const resolved = contracts.filter(c =>
     c.resolution && (c.status === CONTRACT_STATES.COMPLETED || c.status === CONTRACT_STATES.REFUNDED)
@@ -13,10 +14,17 @@ export default function Arbitration({ contracts, onUpdate }) {
 
   async function handleResolve(contract, resolution) {
     setLoading(contract.id + resolution)
-    const update = await resolveDispute(contract.id, resolution)
-    onUpdate({ ...contract, ...update })
-    setLoading(null)
-    setSelected(null)
+    try {
+      openTx('Resolve Dispute', `Resolving dispute for ${contract.title}`)
+      const { txHash } = await sorobanResolveDispute(wallet, contract.escrowId, resolution)
+      txSuccess(txHash)
+      onUpdate(applyResolve(contract, txHash, resolution))
+    } catch (err) {
+      txError(err)
+    } finally {
+      setLoading(null)
+      setSelected(null)
+    }
   }
 
   const ResolutionModal = ({ contract }) => (

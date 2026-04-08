@@ -1,29 +1,36 @@
-// ===== contract.js =====
-// Simulates Soroban smart contract interactions
-// Replace these with actual Stellar/Soroban SDK calls
+// =============================================================================
+// contract.js — On-chain contract state management
+//
+// All simulated data and hardcoded contracts are removed.
+// Contracts are stored in localStorage keyed by wallet address so each
+// user sees only their own contracts across sessions.
+//
+// On-chain execution is handled by stellar.js.
+// This file manages the local state layer that mirrors on-chain state.
+// =============================================================================
 
+// ── Contract lifecycle states (mirrors Rust EscrowState enum) ─────────────────
 export const CONTRACT_STATES = {
-  ACTIVE: 'ACTIVE',
-  SUBMITTED: 'SUBMITTED',
-  COMPLETED: 'COMPLETED',
-  DISPUTED: 'DISPUTED',
-  REFUNDED: 'REFUNDED',
+  AWAITING_DEPOSIT: 'AWAITING_DEPOSIT',
+  ACTIVE:     'ACTIVE',
+  SUBMITTED:  'SUBMITTED',
+  COMPLETED:  'COMPLETED',
+  DISPUTED:   'DISPUTED',
+  REFUNDED:   'REFUNDED',
 }
 
-export const MOCK_WALLET = 'GBXYZ...DEMO'
-
-// Truncate a Stellar address for display
+// ── Formatting helpers ────────────────────────────────────────────────────────
 export function truncateAddr(addr = '') {
-  if (addr.length <= 12) return addr
+  if (!addr || addr.length <= 12) return addr
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`
 }
 
-// Format XLM amount
 export function formatXLM(amount) {
-  return `${Number(amount).toLocaleString()} XLM`
+  const n = Number(amount)
+  if (isNaN(n)) return '0 XLM'
+  return `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })} XLM`
 }
 
-// Format a date string
 export function formatDate(dateStr) {
   if (!dateStr) return '—'
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -31,111 +38,133 @@ export function formatDate(dateStr) {
   })
 }
 
-// Days remaining until deadline
 export function daysRemaining(deadline) {
   if (!deadline) return null
   const diff = new Date(deadline) - new Date()
   return Math.ceil(diff / (1000 * 60 * 60 * 24))
 }
 
-// Generate a mock contract ID
-export function generateId() {
-  return 'TW-' + Math.random().toString(36).slice(2, 8).toUpperCase()
+// ── localStorage persistence ──────────────────────────────────────────────────
+// Contracts are stored per wallet address so each user has their own list.
+// Key: tw_contracts_<walletAddress>
+
+const CONTRACTS_KEY = (wallet) => `tw_contracts_${wallet}`
+
+export function loadContracts(wallet) {
+  if (!wallet) return []
+  try {
+    const raw = localStorage.getItem(CONTRACTS_KEY(wallet))
+    return raw ? JSON.parse(raw) : []
+  } catch { return [] }
 }
 
-// ---- Simulated contract actions ----
-// In production these call the Soroban contract via Stellar SDK
-
-export async function createContract(data) {
-  await delay(800)
-  return { ...data, id: generateId(), status: CONTRACT_STATES.ACTIVE, createdAt: new Date().toISOString() }
+export function saveContracts(wallet, contracts) {
+  if (!wallet) return
+  try {
+    localStorage.setItem(CONTRACTS_KEY(wallet), JSON.stringify(contracts))
+  } catch { /* storage full */ }
 }
 
-export async function submitWork(contractId, submissionNote) {
-  await delay(600)
-  return { status: CONTRACT_STATES.SUBMITTED, submittedAt: new Date().toISOString(), submissionNote }
+export function addContract(wallet, contract) {
+  const existing = loadContracts(wallet)
+  // Also index by freelancer so freelancer can find their contracts
+  const updated = [contract, ...existing.filter(c => c.id !== contract.id)]
+  saveContracts(wallet, updated)
+  // If freelancer is different, also save under freelancer's key
+  if (contract.freelancer && contract.freelancer !== wallet) {
+    const freelancerContracts = loadContracts(contract.freelancer)
+    const updatedFreelancer = [contract, ...freelancerContracts.filter(c => c.id !== contract.id)]
+    saveContracts(contract.freelancer, updatedFreelancer)
+  }
 }
 
-export async function approveWork(contractId) {
-  await delay(600)
-  return { status: CONTRACT_STATES.COMPLETED, completedAt: new Date().toISOString() }
+export function updateContract(wallet, updated) {
+  const existing = loadContracts(wallet)
+  const contracts = existing.map(c => c.id === updated.id ? updated : c)
+  saveContracts(wallet, contracts)
+  // Sync to freelancer's storage too
+  if (updated.freelancer && updated.freelancer !== wallet) {
+    const fl = loadContracts(updated.freelancer)
+    saveContracts(updated.freelancer, fl.map(c => c.id === updated.id ? updated : c))
+  }
 }
 
-export async function raiseDispute(contractId, reason) {
-  await delay(600)
-  return { status: CONTRACT_STATES.DISPUTED, disputeReason: reason, disputedAt: new Date().toISOString() }
+// ── Contract ID generation ────────────────────────────────────────────────────
+// In production this comes from the Soroban contract's escrow_id (u64).
+// We store it as "TW-<escrowId>" for display.
+export function formatContractId(escrowId) {
+  return `TW-${String(escrowId).padStart(6, '0')}`
 }
 
-export async function resolveDispute(contractId, resolution) {
-  // resolution: 'freelancer' | 'client' | 'split'
-  await delay(800)
-  const status = resolution === 'client' ? CONTRACT_STATES.REFUNDED : CONTRACT_STATES.COMPLETED
-  return { status, resolution, resolvedAt: new Date().toISOString() }
-}
+// ── State transition helpers ──────────────────────────────────────────────────
+// These update local state after a confirmed on-chain transaction.
+// The txHash is stored for public verification.
 
-export async function claimPayment(contractId) {
-  await delay(600)
-  return { status: CONTRACT_STATES.COMPLETED, claimedAt: new Date().toISOString() }
-}
-
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-// Seed data for demo
-export const SEED_CONTRACTS = [
-  {
-    id: 'TW-A1B2C3',
-    title: 'DeFi Dashboard UI',
-    freelancer: 'GDFX4...7KPQ',
-    client: MOCK_WALLET,
-    amount: '2500',
-    desc: 'Build a responsive DeFi dashboard with wallet integration, token swaps, and portfolio tracking.',
-    deadline: '2026-04-15',
-    reviewPeriod: '7',
-    status: CONTRACT_STATES.SUBMITTED,
-    createdAt: '2026-03-01T10:00:00Z',
-    submittedAt: '2026-03-20T14:30:00Z',
-    submissionNote: 'All features implemented. Live demo: https://demo.example.com',
-  },
-  {
-    id: 'TW-D4E5F6',
-    title: 'Smart Contract Audit',
-    freelancer: 'GCBA9...2MNR',
-    client: MOCK_WALLET,
-    amount: '1800',
-    desc: 'Full security audit of Soroban escrow contract including vulnerability assessment and report.',
-    deadline: '2026-04-30',
-    reviewPeriod: '5',
+export function applyDeposit(contract, txHash) {
+  return {
+    ...contract,
     status: CONTRACT_STATES.ACTIVE,
-    createdAt: '2026-03-10T09:00:00Z',
-  },
-  {
-    id: 'TW-G7H8I9',
-    title: 'NFT Marketplace Backend',
-    freelancer: 'GHKL3...9XYZ',
-    client: MOCK_WALLET,
-    amount: '4200',
-    desc: 'REST API for NFT marketplace with minting, listing, bidding, and transaction history.',
-    deadline: '2026-03-10',
-    reviewPeriod: '7',
-    status: CONTRACT_STATES.DISPUTED,
-    createdAt: '2026-02-01T08:00:00Z',
-    submittedAt: '2026-03-08T11:00:00Z',
-    disputeReason: 'Delivered work does not match agreed specifications.',
-    disputedAt: '2026-03-12T16:00:00Z',
-  },
-  {
-    id: 'TW-J1K2L3',
-    title: 'Token Vesting Contract',
-    freelancer: 'GMNP7...4QRS',
-    client: MOCK_WALLET,
-    amount: '3100',
-    desc: 'Soroban smart contract for token vesting with cliff, linear release, and admin controls.',
-    deadline: '2026-02-28',
-    reviewPeriod: '5',
+    depositTxHash: txHash,
+    fundedAt: new Date().toISOString(),
+  }
+}
+
+export function applySubmitWork(contract, txHash, note, deliverables, uploadedFiles) {
+  return {
+    ...contract,
+    status: CONTRACT_STATES.SUBMITTED,
+    submittedAt: new Date().toISOString(),
+    submissionNote: note,
+    deliverables,
+    uploadedFiles,
+    submitTxHash: txHash,
+  }
+}
+
+export function applyApprove(contract, txHash) {
+  return {
+    ...contract,
     status: CONTRACT_STATES.COMPLETED,
-    createdAt: '2026-01-15T12:00:00Z',
-    completedAt: '2026-02-25T10:00:00Z',
-  },
-]
+    completedAt: new Date().toISOString(),
+    approveTxHash: txHash,
+  }
+}
+
+export function applyDispute(contract, txHash, reason) {
+  return {
+    ...contract,
+    status: CONTRACT_STATES.DISPUTED,
+    disputeReason: reason,
+    disputedAt: new Date().toISOString(),
+    disputeTxHash: txHash,
+  }
+}
+
+export function applyResolve(contract, txHash, resolution) {
+  const status = resolution === 'client' ? CONTRACT_STATES.REFUNDED : CONTRACT_STATES.COMPLETED
+  return {
+    ...contract,
+    status,
+    resolution,
+    resolvedAt: new Date().toISOString(),
+    resolveTxHash: txHash,
+  }
+}
+
+export function applyClaim(contract, txHash) {
+  return {
+    ...contract,
+    status: CONTRACT_STATES.COMPLETED,
+    claimedAt: new Date().toISOString(),
+    claimTxHash: txHash,
+  }
+}
+
+export function applyRefund(contract, txHash) {
+  return {
+    ...contract,
+    status: CONTRACT_STATES.REFUNDED,
+    refundedAt: new Date().toISOString(),
+    refundTxHash: txHash,
+  }
+}

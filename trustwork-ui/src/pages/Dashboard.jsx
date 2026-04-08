@@ -4,7 +4,7 @@ import { CONTRACT_STATES } from '../utils/contract'
 
 const TABS = ['All', 'Active', 'Submitted', 'Completed', 'Disputed']
 
-export default function Dashboard({ contracts, onView, setPage }) {
+export default function Dashboard({ contracts, onView, setPage, wallet }) {
   const [tab, setTab] = useState('All')
 
   const filtered = tab === 'All'
@@ -73,13 +73,17 @@ export default function Dashboard({ contracts, onView, setPage }) {
       {filtered.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">📋</div>
-          <div className="empty-title">No contracts yet</div>
+          <div className="empty-title">
+            {!wallet ? 'Connect your wallet' : tab === 'All' ? 'No contracts yet' : `No ${tab.toLowerCase()} contracts`}
+          </div>
           <div className="empty-desc">
-            {tab === 'All'
+            {!wallet
+              ? 'Connect your Stellar wallet to see your contracts.'
+              : tab === 'All'
               ? 'Create your first escrow contract to get started.'
               : `No ${tab.toLowerCase()} contracts found.`}
           </div>
-          {tab === 'All' && (
+          {tab === 'All' && wallet && (
             <button className="btn btn-primary" onClick={() => setPage('create')}>
               Create Contract
             </button>
