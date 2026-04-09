@@ -1,0 +1,23 @@
+# Rust build output — never commit this (hundreds of MB)
+democontract/target/
+
+# Node
+trustwork-ui/node_modules/
+trustwork-ui/dist/
+trustwork-ui/dist-ssr/
+
+# Environment files — contain secrets/contract IDs
+trustwork-ui/.env
+trustwork-ui/.env.local
+trustwork-ui/.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.sw?
