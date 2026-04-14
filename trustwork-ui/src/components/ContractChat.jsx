@@ -326,7 +326,7 @@ export default function ContractChat({ contract, wallet, role, onSubmitWork, onA
                             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                               <button
                                 className="btn btn-success"
-                                style={{ flex: 1, minWidth: 140 }}
+                                style={{ flex: 1, minWidth: 0 }}
                                 disabled={actionLoading === 'approve'}
                                 onClick={async () => {
                                   setActionLoading('approve')
@@ -338,7 +338,7 @@ export default function ContractChat({ contract, wallet, role, onSubmitWork, onA
                               </button>
                               <button
                                 className="btn btn-danger"
-                                style={{ flex: 1, minWidth: 140 }}
+                                style={{ flex: 1, minWidth: 0 }}
                                 onClick={() => setShowDisputeBox(s => !s)}
                               >
                                 {contract.arbitrator ? '⚖️ Raise Dispute' : '⚠️ Reject Work'}
@@ -536,7 +536,7 @@ export default function ContractChat({ contract, wallet, role, onSubmitWork, onA
           <div className="chat-action-btns" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button
               className="btn btn-success"
-              style={{ flex: 1, minWidth: 160 }}
+              style={{ flex: 1, minWidth: 0 }}
               disabled={actionLoading === 'approve'}
               onClick={async () => {
                 setActionLoading('approve')
@@ -548,7 +548,7 @@ export default function ContractChat({ contract, wallet, role, onSubmitWork, onA
             </button>
             <button
               className="btn btn-danger"
-              style={{ flex: 1, minWidth: 160 }}
+              style={{ flex: 1, minWidth: 0 }}
               onClick={() => setShowDisputeBox(s => !s)}
             >
               {contract.arbitrator ? '⚖️ Raise Dispute' : '⚠️ Reject Work'}

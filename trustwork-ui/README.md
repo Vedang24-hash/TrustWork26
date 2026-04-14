@@ -2,6 +2,8 @@
 
 > Trustless, transparent, and tamper-proof freelance agreements built on the **Stellar blockchain** using **Soroban smart contracts**.
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black?logo=vercel)](https://trust-work26.vercel.app)
+[![CI/CD](https://github.com/Vedang24-hash/TrustWork26/actions/workflows/deploy.yml/badge.svg)](https://github.com/Vedang24-hash/TrustWork26/actions/workflows/deploy.yml)
 [![Stellar](https://img.shields.io/badge/Stellar-Testnet-blue?logo=stellar)](https://stellar.org)
 [![Soroban](https://img.shields.io/badge/Soroban-Smart%20Contracts-purple)](https://soroban.stellar.org)
 [![React](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://react.dev)
@@ -14,16 +16,17 @@
 
 1. [Overview](#overview)
 2. [Live Demo](#live-demo)
-3. [Architecture](#architecture)
+3. [CI/CD Pipeline](#cicd-pipeline)
+4. [Architecture](#architecture)
    - [System Architecture Diagram](#system-architecture-diagram)
    - [Frontend Layer](#frontend-layer)
    - [Smart Contract Layer](#smart-contract-layer)
    - [Data Layer](#data-layer)
    - [Wallet Integration](#wallet-integration)
-4. [Project Structure](#project-structure)
-5. [Smart Contract Framework](#smart-contract-framework)
-6. [Key Features](#key-features)
-7. [Getting Started](#getting-started)
+5. [Project Structure](#project-structure)
+6. [Smart Contract Framework](#smart-contract-framework)
+7. [Key Features](#key-features)
+8. [Getting Started](#getting-started)
    - [Prerequisites](#prerequisites)
    - [Installation](#installation)
    - [Environment Variables](#environment-variables)
@@ -55,13 +58,89 @@ TrustWork is a **decentralized escrow-based payment infrastructure** for freelan
 
 ## Live Demo
 
-> **Testnet deployment** — use Freighter wallet on Stellar Testnet
+> **Deployed on Vercel — Stellar Testnet**
+
+🌐 **[https://trust-work26.vercel.app](https://trust-work26.vercel.app)**
+
+**To use the live demo:**
+1. Install [Freighter wallet](https://www.freighter.app) browser extension
+2. Switch Freighter to **Testnet** network
+3. Fund your testnet wallet: [Stellar Friendbot](https://friendbot.stellar.org)
+4. Connect wallet on the site and explore
+
+---
+
+## CI/CD Pipeline
+
+TrustWork uses **GitHub Actions** for continuous integration and deployment. Every push to `master` automatically lints, builds, and deploys to Vercel.
+
+### Pipeline Overview
 
 ```
-https://github.com/Vedang24-hash/TrustWork26
+Push to master / PR opened
+         │
+         ▼
+┌─────────────────────────────────┐
+│         Job 1: Build            │
+│                                 │
+│  1. Checkout code               │
+│  2. Setup Node.js 20            │
+│  3. npm ci (install deps)       │
+│  4. npm run lint                │
+│  5. npm run build               │
+│     (with VITE_* secrets)       │
+│  6. Upload dist/ artifact       │
+└──────────────┬──────────────────┘
+               │ (only on push to master)
+               ▼
+┌─────────────────────────────────┐
+│       Job 2: Deploy             │
+│                                 │
+│  1. Install Vercel CLI          │
+│  2. vercel pull (env sync)      │
+│  3. vercel build --prod         │
+│  4. vercel deploy --prebuilt    │
+│  5. Post URL as PR comment      │
+└─────────────────────────────────┘
 ```
 
-Fund your testnet wallet: [Stellar Friendbot](https://friendbot.stellar.org)
+### Pipeline File
+
+Located at: [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)
+
+| Trigger | Action |
+|---------|--------|
+| Push to `master` | Lint → Build → Deploy to Vercel production |
+| Pull Request | Lint → Build only (no deploy) |
+
+### Setting Up GitHub Secrets
+
+For the CI/CD pipeline to work, add these secrets in your GitHub repo:
+**Settings → Secrets and variables → Actions → New repository secret**
+
+| Secret Name | Value |
+|-------------|-------|
+| `VERCEL_TOKEN` | Your Vercel API token ([get it here](https://vercel.com/account/tokens)) |
+| `VITE_CONTRACT_ID` | `CBEUUVKJD2FM5CL57COXJV55HXYSEDW7VXRBJFWKDNZZRSHBMWQZUNQS` |
+| `VITE_STELLAR_NETWORK` | `testnet` |
+| `VITE_RPC_URL` | `https://soroban-testnet.stellar.org` |
+| `VITE_NETWORK_PASSPHRASE` | `Test SDF Network ; September 2015` |
+| `VITE_SUPABASE_URL` | Your Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anon key |
+
+### Getting Your Vercel Token
+
+1. Go to [vercel.com/account/tokens](https://vercel.com/account/tokens)
+2. Click **Create Token**
+3. Name it `github-actions-trustwork`
+4. Copy the token and add it as `VERCEL_TOKEN` in GitHub Secrets
+
+### Build Status
+
+[![CI/CD](https://github.com/Vedang24-hash/TrustWork26/actions/workflows/deploy.yml/badge.svg)](https://github.com/Vedang24-hash/TrustWork26/actions/workflows/deploy.yml)
+
+Every commit to `master` triggers a fresh deployment. You can monitor runs at:
+[github.com/Vedang24-hash/TrustWork26/actions](https://github.com/Vedang24-hash/TrustWork26/actions)
 
 ---
 
@@ -577,16 +656,17 @@ Plan:
   - Add VITE_WEB3_STORAGE_TOKEN to .env
 ```
 
-**2. Mobile-Responsive Layout**
+**2. Mobile-Responsive Layout ✅ Completed**
 
-The current layout is desktop-first. Phase 2 will add full mobile support.
+Full mobile responsiveness shipped in Phase 1.
 
 ```
-Plan:
-  - Responsive grid breakpoints for all pages
-  - Mobile-optimized chat interface
-  - Touch-friendly action buttons
-  - PWA manifest for add-to-homescreen
+Done:
+  - Responsive grid breakpoints for all pages (480px, 640px, 768px)
+  - Mobile-optimized chat interface with viewport-height message list
+  - Touch-friendly action buttons — no horizontal scroll
+  - Safe area insets for notched phones (iPhone X+)
+  - overflow-x: clip on html/body/#root eliminates all horizontal scroll
 ```
 
 **3. Multi-Token Support**
@@ -667,9 +747,10 @@ Plan:
 
 | Commit | Description |
 |--------|-------------|
-| [`88b3314`](https://github.com/Vedang24-hash/TrustWork26/commit/88b3314) | `feat: initial TrustWork UI — escrow contracts on Stellar/Soroban` |
+| [`88b3314`](https://github.com/Vedang24-hash/TrustWork26/commit/88b3314) | `feat: initial TrustWork UI` — escrow contracts on Stellar/Soroban |
 | [`22b6f63`](https://github.com/Vedang24-hash/TrustWork26/commit/22b6f63) | `full working project` — complete UI, smart contract framework, wallet integration, chat system |
-| [`02d44fb`](https://github.com/Vedang24-hash/TrustWork26/commit/02d44fb) | `chore: add .gitignore, remove build artifacts and .env from tracking` — production cleanup + all Phase 1 bug fixes |
+| [`02d44fb`](https://github.com/Vedang24-hash/TrustWork26/commit/02d44fb) | `chore: gitignore + cleanup` — production cleanup, all Phase 1 critical bug fixes |
+| [`c6e56b2`](https://github.com/Vedang24-hash/TrustWork26/commit/c6e56b2) | `complete` — mobile responsive design, Vercel deployment, CI/CD pipeline, README documentation |
 
 ---
 

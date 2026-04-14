@@ -25,7 +25,7 @@ export default function TxModal({ tx, onClose }) {
         background: 'var(--bg-card)', border: '1px solid var(--border)',
         borderRadius: 'var(--radius)', padding: '16px 24px',
         boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-        zIndex: 300, minWidth: 320, maxWidth: 480, width: '90vw',
+        zIndex: 300, minWidth: 0, maxWidth: 'min(480px, calc(100vw - 24px))', width: 'calc(100vw - 24px)',
         display: 'flex', alignItems: 'center', gap: 14,
       }}>
         <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--accent)', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
