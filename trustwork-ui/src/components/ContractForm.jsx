@@ -116,7 +116,7 @@ export default function ContractForm({ onSubmit, loading, wallet }) {
                 background: i < step ? 'var(--accent)' : 'var(--border)',
               }} />
             )}
-            <div style={{
+            <div className="step-progress-circle" style={{
               width: 30, height: 30, borderRadius: '50%', zIndex: 1,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '0.75rem', fontWeight: 700,
@@ -127,7 +127,7 @@ export default function ContractForm({ onSubmit, loading, wallet }) {
             }}>
               {i < step ? '✓' : i + 1}
             </div>
-            <div style={{
+            <div className="step-progress-label" style={{
               fontSize: '0.7rem', marginTop: 6, textAlign: 'center',
               color: i <= step ? 'var(--accent)' : 'var(--text-muted)',
             }}>{label}</div>
@@ -141,7 +141,7 @@ export default function ContractForm({ onSubmit, loading, wallet }) {
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: 20 }}>
             Choose a starting template or build from scratch. You can customize everything in the next steps.
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+          <div className="template-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
             {CONTRACT_TEMPLATES.map(tpl => (
               <div
                 key={tpl.id}

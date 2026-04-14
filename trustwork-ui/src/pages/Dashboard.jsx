@@ -1,21 +1,39 @@
 import { useState } from 'react'
 import ContractCard from '../components/ContractCard'
-import { CONTRACT_STATES } from '../utils/contract'
+import { CONTRACT_STATES, formatXLM } from '../utils/contract'
 
 const TABS = ['All', 'Active', 'Submitted', 'Completed', 'Disputed']
 
-export default function Dashboard({ contracts, onView, setPage, wallet }) {
+export default function Dashboard({ contracts, onView, setPage, wallet, onAction }) {
   const [tab, setTab] = useState('All')
+  const [loading, setLoading] = useState(null)
 
   const filtered = tab === 'All'
     ? contracts
     : contracts.filter(c => c.status === tab.toUpperCase())
+
+  // Contracts where the connected wallet is the client and work is submitted
+  const pendingReview = contracts.filter(
+    c => c.status === CONTRACT_STATES.SUBMITTED && c.client === wallet
+  )
 
   const stats = {
     total: contracts.length,
     active: contracts.filter(c => c.status === CONTRACT_STATES.ACTIVE).length,
     completed: contracts.filter(c => c.status === CONTRACT_STATES.COMPLETED).length,
     volume: contracts.reduce((sum, c) => sum + Number(c.amount || 0), 0),
+  }
+
+  async function handleApprove(e, contract) {
+    e.stopPropagation()
+    setLoading(contract.id)
+    await onAction?.(contract, 'approve')
+    setLoading(null)
+  }
+
+  async function handleDispute(e, contract) {
+    e.stopPropagation()
+    onView(contract) // open contract detail → chat tab has the dispute form
   }
 
   return (
@@ -29,6 +47,72 @@ export default function Dashboard({ contracts, onView, setPage, wallet }) {
           + New Contract
         </button>
       </div>
+
+      {/* ── Pending Review Banner ─────────────────────────────────────────── */}
+      {pendingReview.length > 0 && (
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid rgba(245,158,11,0.5)',
+          borderRadius: 'var(--radius)',
+          padding: '16px',
+          marginBottom: 24,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <span style={{ fontSize: '1.2rem' }}>📦</span>
+            <div>
+              <div style={{ fontWeight: 700, color: 'var(--text-heading)', fontSize: '0.95rem' }}>
+                {pendingReview.length} contract{pendingReview.length > 1 ? 's' : ''} awaiting your review
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Approve to release payment to the freelancer
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {pendingReview.map(c => (
+              <div
+                key={c.id}
+                style={{
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '12px 14px',
+                  cursor: 'pointer',
+                }}
+                onClick={() => onView(c)}
+              >
+                {/* Title + amount */}
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontWeight: 600, color: 'var(--text-heading)', fontSize: '0.9rem', marginBottom: 2 }}>
+                    {c.title}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {formatXLM(c.amount)} in escrow
+                  </div>
+                </div>
+                {/* Buttons — always stacked, full width */}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    className="btn btn-success btn-full"
+                    disabled={loading === c.id}
+                    onClick={(e) => handleApprove(e, c)}
+                  >
+                    {loading === c.id ? '⏳...' : '✅ Approve & Pay'}
+                  </button>
+                  <button
+                    className="btn btn-danger btn-sm"
+                    style={{ flexShrink: 0 }}
+                    onClick={(e) => handleDispute(e, c)}
+                  >
+                    ⚠️
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="stats-grid">

@@ -16,21 +16,37 @@ export default function TxModal({ tx, onClose }) {
 
   const { status, title, description, fee, txHash, error, network } = tx
 
+  // ── During signing: show a small non-blocking toast so Freighter popup
+  // can receive focus. The overlay would block the extension popup.
+  if (status === 'signing') {
+    return (
+      <div className="tx-toast" style={{
+        position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+        background: 'var(--bg-card)', border: '1px solid var(--border)',
+        borderRadius: 'var(--radius)', padding: '16px 24px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+        zIndex: 300, minWidth: 320, maxWidth: 480, width: '90vw',
+        display: 'flex', alignItems: 'center', gap: 14,
+      }}>
+        <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--accent)', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 600, color: 'var(--text-heading)', fontSize: '0.9rem', marginBottom: 3 }}>
+            {title}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            Freighter popup opening — check your browser toolbar if it doesn't appear automatically.
+          </div>
+        </div>
+        <span style={{ fontSize: '0.72rem', color: 'var(--accent)', background: 'var(--accent-glow)', padding: '3px 8px', borderRadius: 8, flexShrink: 0, textTransform: 'uppercase', fontWeight: 700 }}>
+          {(network || NETWORK).toUpperCase()}
+        </span>
+      </div>
+    )
+  }
+
   return (
     <div className="modal-overlay" onClick={status === 'success' || status === 'error' ? onClose : undefined}>
       <div className="modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
-
-        {/* ── Pending / Signing ── */}
-        {status === 'signing' && (
-          <div style={{ textAlign: 'center', padding: '8px 0 16px' }}>
-            <div style={{ width: 52, height: 52, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--accent)', animation: 'spin 0.8s linear infinite', margin: '0 auto 20px' }} />
-            <h3 style={{ color: 'var(--text-heading)', marginBottom: 8 }}>Sign Transaction</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: 20 }}>
-              Check your Freighter extension and approve the transaction.
-            </p>
-            <TxDetails title={title} description={description} fee={fee} network={network || NETWORK} />
-          </div>
-        )}
 
         {/* ── Submitting ── */}
         {status === 'submitting' && (

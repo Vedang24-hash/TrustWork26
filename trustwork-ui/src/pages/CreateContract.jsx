@@ -53,8 +53,8 @@ export default function CreateContract({ onCreate, wallet, setPage, onConnect, o
 
         txSubmitting()
 
-        // Step 2: deposit — second Freighter popup to fund the escrow
-        openTx('Fund Escrow', `Locking ${msAmount} XLM into the smart contract`)
+        // Step 2: approve + deposit — Freighter will pop up twice
+        openTx('Approve & Fund Escrow', `Step 1: Approve token spend · Step 2: Lock ${msAmount} XLM`)
 
         const { txHash: depositTxHash } = await sorobanDeposit(wallet, escrowId)
 

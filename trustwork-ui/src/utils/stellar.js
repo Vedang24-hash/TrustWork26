@@ -68,13 +68,20 @@ export async function invokeContract(sourceAddress, method, args = []) {
   const preparedTx = rpc.assembleTransaction(tx, simResult).build()
 
   // Sign via Freighter — opens the extension popup
+  // v6 API: signTransaction(xdr, { networkPassphrase, address })
+  // Returns: { signedTxXdr: string, signerAddress: string, error: string | null }
   const signResult = await signTransaction(preparedTx.toXDR(), {
     networkPassphrase: NET_PASSPHRASE,
+    address: sourceAddress,
   })
 
-  // Freighter v6 returns the signed XDR string directly
-  const signedXdr = typeof signResult === 'string' ? signResult : signResult?.signedTxXdr
-  if (!signedXdr) throw new Error('Transaction signing was cancelled or failed')
+  // Handle v6 response shape
+  if (signResult?.error) {
+    throw new Error(`Freighter signing failed: ${signResult.error}`)
+  }
+
+  const signedXdr = signResult?.signedTxXdr || (typeof signResult === 'string' ? signResult : null)
+  if (!signedXdr) throw new Error('Transaction signing was cancelled or Freighter did not respond. Please check the Freighter extension popup.')
 
   // Submit
   const signedTx   = TransactionBuilder.fromXDR(signedXdr, NET_PASSPHRASE)
@@ -168,6 +175,67 @@ export async function sorobanCreateEscrow(sourceAddress, {
 }
 
 export async function sorobanDeposit(sourceAddress, escrowId) {
+  // Step 1: Approve the escrow contract to spend the buyer's XLM
+  // This is required by the SAC token before transfer_from can work.
+  // We approve for the exact amount with a generous ledger expiry (~1 year).
+  const server  = getServer()
+  const account = await server.getAccount(sourceAddress)
+
+  // Get the escrow config to know the amount and token
+  const escrowData = await sorobanGetEscrow(escrowId, sourceAddress)
+  if (!escrowData) throw new Error('Could not load escrow data for deposit')
+
+  const tokenContract = new Contract(escrowData.token?.toString() || getXlmSac())
+  const escrowContractAddr = new Address(CONTRACT_ID)
+
+  // Current ledger + ~1 year of ledgers (approx 6 ledgers/min * 60 * 24 * 365)
+  const currentLedger = account.sequenceLedger || 0
+  const expiryLedger  = currentLedger + 3_153_600
+
+  const approveTx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: NET_PASSPHRASE,
+  })
+    .addOperation(tokenContract.call(
+      'approve',
+      new Address(sourceAddress).toScVal(),   // from (buyer)
+      escrowContractAddr.toScVal(),            // spender (escrow contract)
+      nativeToScVal(escrowData.amount, { type: 'i128' }),  // amount in stroops
+      nativeToScVal(expiryLedger, { type: 'u32' }),        // expiry ledger
+    ))
+    .setTimeout(30)
+    .build()
+
+  const approveSimResult = await server.simulateTransaction(approveTx)
+  if (approveSimResult.error) throw new Error(`Approve simulation failed: ${approveSimResult.error}`)
+
+  const preparedApproveTx = rpc.assembleTransaction(approveTx, approveSimResult).build()
+  const approveSignResult = await signTransaction(preparedApproveTx.toXDR(), {
+    networkPassphrase: NET_PASSPHRASE,
+    address: sourceAddress,
+  })
+  if (approveSignResult?.error) throw new Error(`Approve signing failed: ${approveSignResult.error}`)
+  const approveSignedXdr = approveSignResult?.signedTxXdr || (typeof approveSignResult === 'string' ? approveSignResult : null)
+  if (!approveSignedXdr) throw new Error('Approve transaction signing was cancelled')
+
+  const approveSignedTx = TransactionBuilder.fromXDR(approveSignedXdr, NET_PASSPHRASE)
+  const approveSend     = await server.sendTransaction(approveSignedTx)
+  if (approveSend.status === 'ERROR') throw new Error('Approve transaction failed')
+
+  // Wait for approve to confirm
+  let approveResult
+  let attempts = 0
+  do {
+    await new Promise(r => setTimeout(r, 1500))
+    approveResult = await server.getTransaction(approveSend.hash)
+    attempts++
+  } while (approveResult.status === rpc.Api.GetTransactionStatus.NOT_FOUND && attempts < 15)
+
+  if (approveResult.status === rpc.Api.GetTransactionStatus.FAILED) {
+    throw new Error('Approve transaction was rejected')
+  }
+
+  // Step 2: Now call deposit on the escrow contract
   return invokeContract(sourceAddress, 'deposit', [
     nativeToScVal(BigInt(escrowId), { type: 'u64' }),
   ])
@@ -227,6 +295,35 @@ export async function sorobanGetEscrow(escrowId, callerAddress = null) {
     nativeToScVal(BigInt(escrowId), { type: 'u64' }),
   ], callerAddress)
   return result
+}
+
+// Fetch fresh on-chain state and merge with local contract data
+export async function syncContractFromChain(localContract, callerAddress = null) {
+  if (!localContract?.escrowId) return localContract
+  try {
+    const onChain = await sorobanGetEscrow(localContract.escrowId, callerAddress)
+    if (!onChain) return localContract
+
+    // Map on-chain state to UI status
+    const stateMap = {
+      AwaitingDeposit: 'AWAITING_DEPOSIT',
+      Funded:          'ACTIVE',
+      WorkSubmitted:   'SUBMITTED',
+      Disputed:        'DISPUTED',
+      Completed:       'COMPLETED',
+      Refunded:        'REFUNDED',
+    }
+    const onChainState = typeof onChain.state === 'string'
+      ? onChain.state
+      : Object.keys(onChain.state || {})[0] || 'Funded'
+
+    return {
+      ...localContract,
+      status: stateMap[onChainState] || localContract.status,
+    }
+  } catch {
+    return localContract
+  }
 }
 
 export async function sorobanEscrowCount() {

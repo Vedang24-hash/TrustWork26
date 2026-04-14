@@ -6,12 +6,11 @@ export default function Navbar({ page, setPage, wallet, onOpenWallet, onDisconne
   const menuRef = useRef(null)
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'create', label: 'New Contract' },
-    { id: 'arbitration', label: 'Arbitration' },
+    { id: 'dashboard',   label: '📋 Dashboard' },
+    { id: 'create',      label: '＋ New' },
+    { id: 'arbitration', label: '⚖️ Arbitration' },
   ]
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClick(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -24,26 +23,15 @@ export default function Navbar({ page, setPage, wallet, onOpenWallet, onDisconne
 
   return (
     <nav className="navbar">
+      {/* Brand */}
       <div className="navbar-brand" onClick={() => setPage('home')}>
         <div className="navbar-logo">⚡</div>
         <span className="navbar-title">Trust<span>Work</span></span>
       </div>
 
-      <div className="navbar-nav">
-        {navItems.map(item => (
-          <button
-            key={item.id}
-            className={`nav-btn ${page === item.id ? 'active' : ''}`}
-            onClick={() => setPage(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
+      {/* Wallet — right side of top row */}
       <div className="navbar-right">
         {wallet ? (
-          // ── Connected: badge + dropdown ──────────────────────────────────
           <div className="wallet-menu" ref={menuRef}>
             <div
               className="wallet-badge"
@@ -58,51 +46,40 @@ export default function Navbar({ page, setPage, wallet, onOpenWallet, onDisconne
             {dropdownOpen && (
               <div className="wallet-dropdown">
                 <div className="wallet-dropdown-addr">{wallet}</div>
-
-                <button
-                  className="wallet-dropdown-item"
-                  onClick={() => {
-                    navigator.clipboard?.writeText(wallet)
-                    setDropdownOpen(false)
-                  }}
-                >
+                <button className="wallet-dropdown-item" onClick={() => { navigator.clipboard?.writeText(wallet); setDropdownOpen(false) }}>
                   📋 Copy Address
                 </button>
-
-                <button
-                  className="wallet-dropdown-item"
-                  onClick={() => {
-                    window.open(`https://stellar.expert/explorer/testnet/account/${wallet}`, '_blank')
-                    setDropdownOpen(false)
-                  }}
-                >
-                  🔍 View on Explorer
+                <button className="wallet-dropdown-item" onClick={() => { window.open(`https://stellar.expert/explorer/testnet/account/${wallet}`, '_blank'); setDropdownOpen(false) }}>
+                  🔍 Explorer
                 </button>
-
-                <button
-                  className="wallet-dropdown-item"
-                  onClick={() => { onOpenWallet(); setDropdownOpen(false) }}
-                >
+                <button className="wallet-dropdown-item" onClick={() => { onOpenWallet(); setDropdownOpen(false) }}>
                   ⚙️ Wallet Details
                 </button>
-
                 <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
-
-                <button
-                  className="wallet-dropdown-item danger"
-                  onClick={() => { onDisconnect(); setDropdownOpen(false) }}
-                >
+                <button className="wallet-dropdown-item danger" onClick={() => { onDisconnect(); setDropdownOpen(false) }}>
                   🔌 Disconnect
                 </button>
               </div>
             )}
           </div>
         ) : (
-          // ── Not connected ────────────────────────────────────────────────
           <button className="btn btn-primary btn-sm" onClick={onOpenWallet}>
-            Connect Wallet
+            Connect
           </button>
         )}
+      </div>
+
+      {/* Nav links — wraps to second row on mobile via CSS */}
+      <div className="navbar-nav">
+        {navItems.map(item => (
+          <button
+            key={item.id}
+            className={`nav-btn ${page === item.id ? 'active' : ''}`}
+            onClick={() => setPage(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
     </nav>
   )

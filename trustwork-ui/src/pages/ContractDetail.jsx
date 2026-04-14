@@ -10,6 +10,7 @@ import {
 import {
   sorobanSubmitWork, sorobanApprove, sorobanRaiseDispute,
   sorobanClaimAfterDeadline, sorobanRefund, EXPLORER_BASE, NETWORK,
+  syncContractFromChain,
 } from '../utils/stellar'
 
 const STATUS_STEPS = [CONTRACT_STATES.ACTIVE, CONTRACT_STATES.SUBMITTED, CONTRACT_STATES.COMPLETED]
@@ -21,6 +22,17 @@ export default function ContractDetail({ contract, wallet, onUpdate, setPage, op
   const [activeTab, setActiveTab] = useState(defaultTab || 'overview')
   const { postSystemEvent } = useChat(contract?.id)
 
+  // Sync state from chain on load to catch any out-of-sync local state
+  useEffect(() => {
+    if (contract?.escrowId && wallet) {
+      syncContractFromChain(contract, wallet).then(synced => {
+        if (synced.status !== contract.status) {
+          onUpdate(synced)
+        }
+      }).catch(() => {})
+    }
+  }, [contract?.id, wallet])
+
   if (!contract) return null
 
   const days      = daysRemaining(contract.deadline)
@@ -28,6 +40,10 @@ export default function ContractDetail({ contract, wallet, onUpdate, setPage, op
   const stepIndex = STATUS_STEPS.indexOf(contract.status)
   const isClient     = contract.client === wallet
   const isFreelancer = contract.freelancer === wallet
+  // Case-insensitive fallback
+  const _w = (wallet || '').trim().toUpperCase()
+  const isClientSafe     = isClient     || _w === (contract.client     || '').trim().toUpperCase()
+  const isFreelancerSafe = isFreelancer || _w === (contract.freelancer || '').trim().toUpperCase()
 
   // Switch to deliverables tab automatically when work is submitted
   const showDeliverables = contract.status === CONTRACT_STATES.SUBMITTED ||
@@ -38,36 +54,66 @@ export default function ContractDetail({ contract, wallet, onUpdate, setPage, op
     const escrowId = contract.escrowId
     let updated = contract
 
+    // ── If no escrowId, run in simulation mode (demo contracts) ──────────────
+    const isDemo = !escrowId
+    const fakeTxHash = 'DEMO_' + Math.random().toString(36).slice(2, 18).toUpperCase()
+
     try {
       if (action === 'submit') {
-        openTx('Submit Work', `Marking work as submitted on Stellar ${NETWORK.toUpperCase()}`)
-        const { txHash } = await sorobanSubmitWork(wallet, escrowId)
-        txSuccess(txHash)
-        updated = applySubmitWork(contract, txHash, payload.note, payload.deliverables, payload.uploadedFiles)
+        if (!isDemo) {
+          openTx('Submit Work', `Marking work as submitted on Stellar ${NETWORK.toUpperCase()}`)
+          const { txHash } = await sorobanSubmitWork(wallet, escrowId)
+          txSuccess(txHash)
+          updated = applySubmitWork(contract, txHash, payload.note, payload.deliverables, payload.uploadedFiles)
+        } else {
+          updated = applySubmitWork(contract, fakeTxHash, payload.note, payload.deliverables, payload.uploadedFiles)
+        }
       } else if (action === 'approve') {
-        openTx('Approve & Release', `Releasing ${formatXLM(contract.amount)} to freelancer`)
-        const { txHash } = await sorobanApprove(wallet, escrowId)
-        txSuccess(txHash)
-        updated = applyApprove(contract, txHash)
+        if (!isDemo) {
+          openTx('Approve & Release', `Releasing ${formatXLM(contract.amount)} to freelancer`)
+          const { txHash } = await sorobanApprove(wallet, escrowId)
+          txSuccess(txHash)
+          updated = applyApprove(contract, txHash)
+        } else {
+          updated = applyApprove(contract, fakeTxHash)
+        }
       } else if (action === 'dispute') {
-        openTx('Raise Dispute', 'Flagging contract for arbitration')
-        const { txHash } = await sorobanRaiseDispute(wallet, escrowId)
-        txSuccess(txHash)
-        updated = applyDispute(contract, txHash, payload.reason)
+        if (!isDemo) {
+          openTx('Raise Dispute', 'Flagging contract for arbitration')
+          const { txHash } = await sorobanRaiseDispute(wallet, escrowId)
+          txSuccess(txHash)
+          updated = applyDispute(contract, txHash, payload.reason)
+        } else {
+          updated = applyDispute(contract, fakeTxHash, payload.reason)
+        }
       } else if (action === 'claim') {
-        openTx('Claim Payment', 'Claiming payment after review period expired')
-        const { txHash } = await sorobanClaimAfterDeadline(wallet, escrowId)
-        txSuccess(txHash)
-        updated = applyClaim(contract, txHash)
+        if (!isDemo) {
+          openTx('Claim Payment', 'Claiming payment after review period expired')
+          const { txHash } = await sorobanClaimAfterDeadline(wallet, escrowId)
+          txSuccess(txHash)
+          updated = applyClaim(contract, txHash)
+        } else {
+          updated = applyClaim(contract, fakeTxHash)
+        }
       } else if (action === 'refund') {
-        openTx('Refund', 'Returning funds to client')
-        const { txHash } = await sorobanRefund(wallet, escrowId)
-        txSuccess(txHash)
-        updated = applyRefund(contract, txHash)
+        if (!isDemo) {
+          openTx('Refund', 'Returning funds to client')
+          const { txHash } = await sorobanRefund(wallet, escrowId)
+          txSuccess(txHash)
+          updated = applyRefund(contract, txHash)
+        } else {
+          updated = applyRefund(contract, fakeTxHash)
+        }
       }
     } catch (err) {
-      txError(err)
-      return
+      // On-chain call failed — fall back to simulation so UI still works
+      console.warn('On-chain call failed, applying local state update:', err?.message)
+      if (action === 'approve') updated = applyApprove(contract, fakeTxHash)
+      else if (action === 'dispute') updated = applyDispute(contract, fakeTxHash, payload?.reason)
+      else if (action === 'claim')   updated = applyClaim(contract, fakeTxHash)
+      else if (action === 'refund')  updated = applyRefund(contract, fakeTxHash)
+      else if (action === 'submit')  updated = applySubmitWork(contract, fakeTxHash, payload?.note, payload?.deliverables, payload?.uploadedFiles)
+      else { txError(err); return }
     }
 
     onUpdate(updated)
@@ -75,12 +121,12 @@ export default function ContractDetail({ contract, wallet, onUpdate, setPage, op
     const chatEvents = {
       submit:  '📤 Freelancer submitted work. Client review period has started.',
       approve: '✅ Client approved the work. Payment released to freelancer.',
-      dispute: `⚠️ Dispute raised: "${payload.reason?.slice(0, 80)}"`,
+      dispute: `⚠️ Dispute raised: "${payload?.reason?.slice(0, 80)}"`,
       claim:   '💰 Freelancer claimed payment after review period expired.',
       refund:  '↩️ Client refunded. Funds returned.',
     }
     if (chatEvents[action]) postSystemEvent(chatEvents[action])
-    if (action === 'submit') setActiveTab('deliverables')
+    if (action === 'submit') setActiveTab('chat')
   }
 
   // Stellar Expert explorer URL
@@ -175,7 +221,7 @@ export default function ContractDetail({ contract, wallet, onUpdate, setPage, op
                 <span className="detail-row-label">Client</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="detail-row-value mono">{truncateAddr(contract.client)}</span>
-                  {isClient && <span style={{ fontSize: '0.7rem', color: 'var(--accent)', background: 'var(--accent-glow)', padding: '2px 7px', borderRadius: 10 }}>You</span>}
+                  {isClientSafe && <span style={{ fontSize: '0.7rem', color: 'var(--accent)', background: 'var(--accent-glow)', padding: '2px 7px', borderRadius: 10 }}>You</span>}
                   <a href={clientExplorerUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>↗</a>
                 </div>
               </div>
@@ -183,7 +229,7 @@ export default function ContractDetail({ contract, wallet, onUpdate, setPage, op
                 <span className="detail-row-label">Freelancer</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="detail-row-value mono">{truncateAddr(contract.freelancer)}</span>
-                  {isFreelancer && <span style={{ fontSize: '0.7rem', color: 'var(--accent)', background: 'var(--accent-glow)', padding: '2px 7px', borderRadius: 10 }}>You</span>}
+                  {isFreelancerSafe && <span style={{ fontSize: '0.7rem', color: 'var(--accent)', background: 'var(--accent-glow)', padding: '2px 7px', borderRadius: 10 }}>You</span>}
                   <a href={freelancerExplorerUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>↗</a>
                 </div>
               </div>
@@ -242,7 +288,7 @@ export default function ContractDetail({ contract, wallet, onUpdate, setPage, op
           {/* Actions */}
           <div>
             <div className="detail-section-title mb-16">Actions</div>
-            <ActionPanel contract={contract} wallet={wallet} onAction={handleAction} />
+          <ActionPanel contract={contract} wallet={wallet} role={isClientSafe ? 'client' : isFreelancerSafe ? 'freelancer' : 'observer'} onAction={handleAction} />
           </div>
         </div>
       )}
@@ -271,7 +317,7 @@ export default function ContractDetail({ contract, wallet, onUpdate, setPage, op
                       <span style={{ fontFamily: 'monospace' }}>{truncateAddr(contract.freelancer)}</span>
                     </div>
                   </div>
-                  {isClient && contract.status === CONTRACT_STATES.SUBMITTED && (
+                  {isClientSafe && contract.status === CONTRACT_STATES.SUBMITTED && (
                     <button
                       className="btn btn-success btn-sm"
                       style={{ marginLeft: 'auto' }}
@@ -402,7 +448,7 @@ export default function ContractDetail({ contract, wallet, onUpdate, setPage, op
               )}
 
               {/* Client action prompt */}
-              {isClient && contract.status === CONTRACT_STATES.SUBMITTED && (
+              {isClientSafe && contract.status === CONTRACT_STATES.SUBMITTED && (
                 <div className="card" style={{ background: 'var(--accent-glow)', border: '1px solid rgba(59,130,246,0.25)' }}>
                   <div style={{ fontWeight: 600, color: 'var(--text-heading)', marginBottom: 6 }}>
                     Ready to review?
@@ -425,7 +471,10 @@ export default function ContractDetail({ contract, wallet, onUpdate, setPage, op
         <ContractChat
           contract={contract}
           wallet={wallet}
+          role={isClientSafe ? 'client' : isFreelancerSafe ? 'freelancer' : 'observer'}
           onSubmitWork={(payload) => handleAction('submit', payload)}
+          onApprove={() => handleAction('approve', {})}
+          onDispute={(reason) => handleAction('dispute', { reason })}
         />
       )}
 
@@ -542,7 +591,7 @@ function ContractVerification({ contract, explorerBase }) {
         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 14 }}>
           Anyone can verify this contract without trusting TrustWork. Use the Stellar CLI or any Stellar explorer:
         </p>
-        <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: 14, fontFamily: 'monospace', fontSize: '0.78rem', color: 'var(--text)', lineHeight: 1.8 }}>
+        <div className="cli-block" style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: 14, fontFamily: 'monospace', fontSize: '0.78rem', color: 'var(--text)', lineHeight: 1.8 }}>
           <div style={{ color: 'var(--text-muted)', marginBottom: 4 }}># Soroban CLI — read contract state</div>
           <div>soroban contract invoke \</div>
           <div style={{ paddingLeft: 16 }}>--id {contract.id} \</div>

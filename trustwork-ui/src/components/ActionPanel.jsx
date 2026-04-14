@@ -13,7 +13,7 @@ const DELIVERABLE_TYPES = [
   { value: 'other',  label: '📎 Other',             placeholder: 'Any URL or reference' },
 ]
 
-export default function ActionPanel({ contract, wallet, onAction }) {
+export default function ActionPanel({ contract, wallet, role, onAction }) {
   const [note, setNote]                   = useState('')
   const [deliverables, setDeliverables]   = useState([{ type: 'link', url: '', label: '' }])
   const [uploadedFiles, setUploadedFiles] = useState([])
@@ -22,6 +22,11 @@ export default function ActionPanel({ contract, wallet, onAction }) {
 
   const isClient     = contract.client === wallet
   const isFreelancer = contract.freelancer === wallet
+
+  // Case-insensitive fallback
+  const w = (wallet || '').trim().toUpperCase()
+  const isClientSafe     = role === 'client'    || isClient || w === (contract.client     || '').trim().toUpperCase()
+  const isFreelancerSafe = role === 'freelancer' || isFreelancer || w === (contract.freelancer || '').trim().toUpperCase()
   const days         = daysRemaining(contract.deadline)
   const reviewExpired = days !== null && days < -(Number(contract.reviewPeriod) || 7)
 
@@ -73,7 +78,7 @@ export default function ActionPanel({ contract, wallet, onAction }) {
     <div className="action-panel">
 
       {/* ── FREELANCER: Submit Work ─────────────────────────────────────────── */}
-      {isFreelancer && contract.status === CONTRACT_STATES.ACTIVE && (
+      {isFreelancerSafe && contract.status === CONTRACT_STATES.ACTIVE && (
         <div className="action-card">
           <div className="action-card-title">📤 Submit Work</div>
           <div className="action-card-desc">
@@ -101,7 +106,7 @@ export default function ActionPanel({ contract, wallet, onAction }) {
                 <div key={i} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: 12, marginBottom: 8 }}>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                     <select
-                      className="form-select"
+                      className="form-select deliverable-select"
                       value={d.type}
                       onChange={e => setDeliverable(i, 'type', e.target.value)}
                       style={{ flex: '0 0 160px', fontSize: '0.8rem' }}
@@ -165,7 +170,7 @@ export default function ActionPanel({ contract, wallet, onAction }) {
       )}
 
       {/* ── CLIENT: Review submitted work ──────────────────────────────────── */}
-      {isClient && contract.status === CONTRACT_STATES.SUBMITTED && (
+      {isClientSafe && contract.status === CONTRACT_STATES.SUBMITTED && (
         <>
           <div className="action-card">
             <div className="action-card-title">✅ Approve & Release Payment</div>
@@ -207,7 +212,7 @@ export default function ActionPanel({ contract, wallet, onAction }) {
       )}
 
       {/* ── FREELANCER: Auto-claim after review period ─────────────────────── */}
-      {isFreelancer && contract.status === CONTRACT_STATES.SUBMITTED && reviewExpired && (
+      {isFreelancerSafe && contract.status === CONTRACT_STATES.SUBMITTED && reviewExpired && (
         <div className="action-card">
           <div className="action-card-title">💰 Claim Payment</div>
           <div className="action-card-desc">
@@ -231,14 +236,14 @@ export default function ActionPanel({ contract, wallet, onAction }) {
           </div>
         </div>
       )}
-      {isFreelancer && contract.status === CONTRACT_STATES.SUBMITTED && !reviewExpired && (
+      {isFreelancerSafe && contract.status === CONTRACT_STATES.SUBMITTED && !reviewExpired && (
         <div className="action-card">
           <div className="alert alert-info" style={{ marginBottom: 0 }}>
             ⏳ Work submitted. Awaiting client review. Auto-claim unlocks after the review period.
           </div>
         </div>
       )}
-      {isClient && contract.status === CONTRACT_STATES.ACTIVE && (
+      {isClientSafe && contract.status === CONTRACT_STATES.ACTIVE && (
         <div className="action-card">
           <div className="alert alert-info" style={{ marginBottom: 0 }}>
             ⏳ Waiting for the freelancer to submit their work.
@@ -247,7 +252,7 @@ export default function ActionPanel({ contract, wallet, onAction }) {
       )}
 
       {/* ── Not a party ────────────────────────────────────────────────────── */}
-      {!isClient && !isFreelancer && (
+      {!isClientSafe && !isFreelancerSafe && (
         <div className="action-card">
           <div className="alert alert-info" style={{ marginBottom: 0 }}>
             👁️ You are viewing this contract as a third party. Connect the client or freelancer wallet to take actions.

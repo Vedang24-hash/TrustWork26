@@ -14,7 +14,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useChat, seedChatIfEmpty } from '../hooks/useChat'
-import { truncateAddr, formatDate, CONTRACT_STATES } from '../utils/contract'
+import { truncateAddr, CONTRACT_STATES } from '../utils/contract'
+import { syncContractFromChain } from '../utils/stellar'
 
 const ACCEPTED_ATTACH = '.pdf,.zip,.png,.jpg,.jpeg,.gif,.mp4,.txt,.md,.json,.docx,.svg'
 
@@ -39,30 +40,51 @@ function avatarColor(addr = '') {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function ContractChat({ contract, wallet, onSubmitWork }) {
-  const { messages, sendMessage, postSystemEvent } = useChat(contract.id)
+export default function ContractChat({ contract, wallet, role, onSubmitWork, onApprove, onDispute }) {
+  const { messages, sendMessage, postSystemEvent, useSupabase } = useChat(contract.id)
   const [text, setText]           = useState('')
   const [attachments, setAttachments] = useState([])
   const [dragging, setDragging]   = useState(false)
   const [inviteCopied, setInviteCopied] = useState(false)
   const [showInvite, setShowInvite] = useState(false)
+  const [disputeText, setDisputeText] = useState('')
+  const [showDisputeBox, setShowDisputeBox] = useState(false)
+  const [actionLoading, setActionLoading] = useState(null)
+  // liveStatus: synced from chain so client sees SUBMITTED even if local cache is stale
+  const [liveStatus, setLiveStatus] = useState(contract.status)
   const bottomRef  = useRef(null)
   const fileRef    = useRef(null)
   const inputRef   = useRef(null)
 
-  const isClient     = contract.client === wallet
-  const isFreelancer = contract.freelancer === wallet
-  const isMember     = isClient || isFreelancer
+  // Role is passed explicitly from ContractDetail — no address comparison needed
+  // Falls back to address comparison if role prop not provided
+  const walletNorm      = (wallet || '').trim().toUpperCase()
+  const clientNorm      = (contract.client || '').trim().toUpperCase()
+  const freelancerNorm  = (contract.freelancer || '').trim().toUpperCase()
 
-  // Determine sender role
-  const senderRole = isClient ? 'client' : isFreelancer ? 'freelancer' : 'observer'
+  const isClientSafe     = role === 'client'     || walletNorm === clientNorm
+  const isFreelancerSafe = role === 'freelancer'  || walletNorm === freelancerNorm
+  const isMemberSafe     = isClientSafe || isFreelancerSafe
 
-  // Seed demo messages for existing seed contracts
+  // Keep legacy vars for senderRole
+  const isClient     = isClientSafe
+  const isFreelancer = isFreelancerSafe
+  const isMember     = isMemberSafe
+  const senderRole   = isClientSafe ? 'client' : isFreelancerSafe ? 'freelancer' : 'observer'
+
+  // Sync on-chain status when chat tab opens — catches stale local state
   useEffect(() => {
-    if (contract.client && contract.freelancer) {
-      seedChatIfEmpty(contract.id, contract.client, contract.freelancer)
+    if (contract?.escrowId && wallet) {
+      syncContractFromChain(contract, wallet)
+        .then(synced => setLiveStatus(synced.status))
+        .catch(() => {})
     }
-  }, [contract.id])
+  }, [contract?.id, wallet])
+
+  // Keep liveStatus in sync if parent contract prop updates
+  useEffect(() => {
+    setLiveStatus(contract.status)
+  }, [contract.status])
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -112,9 +134,14 @@ export default function ContractChat({ contract, wallet, onSubmitWork }) {
   }
 
   // ── Submit work from chat ──────────────────────────────────────────────────
-  function handleSubmitFromChat() {
-    postSystemEvent('📤 Work submitted via chat. Awaiting client review.')
-    onSubmitWork?.({ note: text || 'Work submitted via chat.', deliverables: [], uploadedFiles: [] })
+  async function handleSubmitFromChat() {
+    const note = text.trim() || 'Work submitted via chat.'
+    // 1. Post the submission card into chat
+    await postSystemEvent(`📤 **Work Submitted** — Freelancer marked work as complete.\n\n"${note}"\n\nClient: please review and approve or raise a dispute below.`, 'submission')
+    // 2. Trigger the state change
+    await onSubmitWork?.({ note, deliverables: [], uploadedFiles: [] })
+    // 3. Force liveStatus update immediately — don't wait for prop re-render
+    setLiveStatus(CONTRACT_STATES.SUBMITTED)
     setText('')
   }
 
@@ -127,7 +154,7 @@ export default function ContractChat({ contract, wallet, onSubmitWork }) {
   }, {})
 
   // ── Not a member view ──────────────────────────────────────────────────────
-  if (!isMember) {
+  if (!isMemberSafe) {
     return (
       <div style={{ maxWidth: 600, margin: '0 auto' }}>
         <div className="card" style={{ textAlign: 'center', padding: 40 }}>
@@ -171,7 +198,7 @@ export default function ContractChat({ contract, wallet, onSubmitWork }) {
 
           <div style={{ display: 'flex', gap: 8 }}>
             {/* Invite button — client shares link with freelancer */}
-            {isClient && (
+            {isClientSafe && (
               <div style={{ position: 'relative' }}>
                 <button
                   className="btn btn-secondary btn-sm"
@@ -180,10 +207,10 @@ export default function ContractChat({ contract, wallet, onSubmitWork }) {
                   🔗 Invite Freelancer
                 </button>
                 {showInvite && (
-                  <div style={{
+                  <div className="invite-dropdown" style={{
                     position: 'absolute', top: 'calc(100% + 8px)', right: 0,
                     background: 'var(--bg-card)', border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius)', padding: 16, width: 320,
+                    borderRadius: 'var(--radius)', padding: 16, width: 'min(320px, calc(100vw - 28px))',
                     boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 50,
                   }}>
                     <div style={{ fontWeight: 600, color: 'var(--text-heading)', fontSize: '0.875rem', marginBottom: 6 }}>
@@ -203,7 +230,7 @@ export default function ContractChat({ contract, wallet, onSubmitWork }) {
               </div>
             )}
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', alignSelf: 'center', background: 'var(--bg-elevated)', padding: '4px 10px', borderRadius: 10, border: '1px solid var(--border)' }}>
-              {isClient ? '👤 Client' : '💼 Freelancer'}
+              {isClientSafe ? '👤 Client' : '💼 Freelancer'}
             </span>
           </div>
         </div>
@@ -211,6 +238,7 @@ export default function ContractChat({ contract, wallet, onSubmitWork }) {
 
       {/* ── Message list ────────────────────────────────────────────────────── */}
       <div
+        className="chat-msg-list"
         style={{
           height: 460, overflowY: 'auto',
           background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -262,6 +290,122 @@ export default function ContractChat({ contract, wallet, onSubmitWork }) {
               const showAvatar = !prevMsg || prevMsg.sender !== msg.sender
 
               if (isSystem) {
+                // ── Submission card — shows approve/dispute inline ──────────
+                if (msg.type === 'submission') {
+                  return (
+                    <div key={msg.id} style={{ margin: '12px 0' }}>
+                      <div style={{
+                        background: 'var(--bg-elevated)',
+                        border: '1px solid rgba(245,158,11,0.4)',
+                        borderLeft: '3px solid var(--yellow)',
+                        borderRadius: 'var(--radius)',
+                        padding: '14px 16px',
+                      }}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: '1.1rem' }}>📤</span>
+                          <span style={{ fontWeight: 700, color: 'var(--text-heading)', fontSize: '0.9rem' }}>
+                            Work Submitted
+                          </span>
+                          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                            {formatTime(msg.ts)}
+                          </span>
+                        </div>
+
+                        {/* Note */}
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text)', lineHeight: 1.6, marginBottom: 12, whiteSpace: 'pre-wrap' }}>
+                          {msg.text.replace(/^\*\*Work Submitted\*\* — Freelancer marked work as complete\.\n\n/, '').replace(/\n\nClient: please review and approve or raise a dispute below\.$/, '')}
+                        </p>
+
+                        {/* Client action buttons — only show if not yet resolved */}
+                        {contract.status !== CONTRACT_STATES.COMPLETED && contract.status !== CONTRACT_STATES.REFUNDED && contract.status !== CONTRACT_STATES.DISPUTED && (
+                          <div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 8 }}>
+                              Review the deliverables in the <strong>Deliverables</strong> tab, then:
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                              <button
+                                className="btn btn-success"
+                                style={{ flex: 1, minWidth: 140 }}
+                                disabled={actionLoading === 'approve'}
+                                onClick={async () => {
+                                  setActionLoading('approve')
+                                  await onApprove?.()
+                                  setActionLoading(null)
+                                }}
+                              >
+                                {actionLoading === 'approve' ? '⏳ Processing...' : '✅ Approve & Release Payment'}
+                              </button>
+                              <button
+                                className="btn btn-danger"
+                                style={{ flex: 1, minWidth: 140 }}
+                                onClick={() => setShowDisputeBox(s => !s)}
+                              >
+                                {contract.arbitrator ? '⚖️ Raise Dispute' : '⚠️ Reject Work'}
+                              </button>
+                            </div>
+
+                            {showDisputeBox && (
+                              <div style={{ marginTop: 10 }}>
+                                <textarea
+                                  className="form-textarea"
+                                  placeholder={contract.arbitrator
+                                    ? 'Describe the issue — what was agreed vs what was delivered. The arbitrator will review this.'
+                                    : 'Describe what is wrong with the delivered work...'}
+                                  value={disputeText}
+                                  onChange={e => setDisputeText(e.target.value)}
+                                  rows={2}
+                                  style={{ marginBottom: 8, fontSize: '0.82rem' }}
+                                />
+                                {contract.arbitrator && (
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 8 }}>
+                                    ⚖️ Arbitrator <strong style={{ fontFamily: 'monospace' }}>{truncateAddr(contract.arbitrator)}</strong> will be notified and will decide the outcome.
+                                  </div>
+                                )}
+                                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                  <button className="btn btn-secondary btn-sm" onClick={() => setShowDisputeBox(false)}>
+                                    Cancel
+                                  </button>
+                                  <button
+                                    className="btn btn-danger btn-sm"
+                                    disabled={!disputeText.trim() || actionLoading === 'dispute'}
+                                    onClick={async () => {
+                                      setActionLoading('dispute')
+                                      await onDispute?.(disputeText)
+                                      setActionLoading(null)
+                                      setShowDisputeBox(false)
+                                      setDisputeText('')
+                                    }}
+                                  >
+                                    {actionLoading === 'dispute' ? '⏳...' : contract.arbitrator ? '⚖️ Raise Dispute' : '⚠️ Reject'}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Freelancer waiting state */}
+                        {isFreelancerSafe && contract.status !== CONTRACT_STATES.COMPLETED && contract.status !== CONTRACT_STATES.REFUNDED && (
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', background: 'var(--bg)', borderRadius: 8, padding: '8px 12px' }}>
+                            ⏳ Awaiting client review. You can auto-claim after the review period expires.
+                          </div>
+                        )}
+
+                        {/* Resolved state */}
+                        {(contract.status === CONTRACT_STATES.COMPLETED || contract.status === CONTRACT_STATES.REFUNDED || contract.status === CONTRACT_STATES.DISPUTED) && (
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', background: 'var(--bg)', borderRadius: 8, padding: '8px 12px' }}>
+                            {contract.status === CONTRACT_STATES.COMPLETED && '✅ Approved — payment released.'}
+                            {contract.status === CONTRACT_STATES.REFUNDED && '↩️ Refunded to client.'}
+                            {contract.status === CONTRACT_STATES.DISPUTED && '⚖️ Dispute raised — under arbitration.'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                }
+
+                // ── Regular system message ─────────────────────────────────
                 return (
                   <div key={msg.id} style={{ textAlign: 'center', margin: '8px 0' }}>
                     <span style={{
@@ -302,7 +446,7 @@ export default function ContractChat({ contract, wallet, onSubmitWork }) {
                   )}
 
                   {/* Bubble */}
-                  <div style={{ maxWidth: '70%' }}>
+                  <div className="chat-bubble-wrap" style={{ maxWidth: '70%' }}>
                     {showAvatar && (
                       <div style={{
                         fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: 3,
@@ -362,6 +506,121 @@ export default function ContractChat({ contract, wallet, onSubmitWork }) {
         <div ref={bottomRef} />
       </div>
 
+      {/* ── CLIENT ACTION BAR — show whenever submission exists and not yet resolved ── */}
+      {messages.some(m => m.type === 'submission')
+        && contract.status !== CONTRACT_STATES.COMPLETED
+        && contract.status !== CONTRACT_STATES.REFUNDED
+        && contract.status !== CONTRACT_STATES.DISPUTED
+        && (
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid rgba(245,158,11,0.5)',
+          borderRadius: 'var(--radius)',
+          padding: '16px 18px',
+          marginBottom: 10,
+        }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <span style={{ fontSize: '1.2rem' }}>📦</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, color: 'var(--text-heading)', fontSize: '0.9rem' }}>
+                Freelancer submitted work — your action required
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                Review the deliverables in the <strong>Deliverables</strong> tab, then approve or raise a dispute.
+              </div>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="chat-action-btns" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-success"
+              style={{ flex: 1, minWidth: 160 }}
+              disabled={actionLoading === 'approve'}
+              onClick={async () => {
+                setActionLoading('approve')
+                await onApprove?.()
+                setActionLoading(null)
+              }}
+            >
+              {actionLoading === 'approve' ? '⏳ Processing...' : '✅ Approve & Release Payment'}
+            </button>
+            <button
+              className="btn btn-danger"
+              style={{ flex: 1, minWidth: 160 }}
+              onClick={() => setShowDisputeBox(s => !s)}
+            >
+              {contract.arbitrator ? '⚖️ Raise Dispute' : '⚠️ Reject Work'}
+            </button>
+          </div>
+
+          {/* Dispute box */}
+          {showDisputeBox && (
+            <div style={{ marginTop: 12 }}>
+              <textarea
+                className="form-textarea"
+                placeholder={contract.arbitrator
+                  ? `Describe the issue clearly. Arbitrator (${truncateAddr(contract.arbitrator)}) will review and decide.`
+                  : 'Describe what is wrong with the delivered work...'}
+                value={disputeText}
+                onChange={e => setDisputeText(e.target.value)}
+                rows={2}
+                style={{ marginBottom: 8, fontSize: '0.85rem' }}
+                autoFocus
+              />
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button className="btn btn-secondary btn-sm" onClick={() => { setShowDisputeBox(false); setDisputeText('') }}>
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-danger btn-sm"
+                  disabled={!disputeText.trim() || actionLoading === 'dispute'}
+                  onClick={async () => {
+                    setActionLoading('dispute')
+                    await onDispute?.(disputeText)
+                    setActionLoading(null)
+                    setShowDisputeBox(false)
+                    setDisputeText('')
+                  }}
+                >
+                  {actionLoading === 'dispute' ? '⏳...' : contract.arbitrator ? '⚖️ Confirm Dispute' : '⚠️ Confirm Rejection'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Freelancer: claim after deadline ────────────────────────────────── */}
+      {isFreelancerSafe && liveStatus === CONTRACT_STATES.SUBMITTED && (() => {
+        const days = contract.deadline
+          ? Math.ceil((new Date(contract.deadline) - new Date()) / (1000 * 60 * 60 * 24))
+          : null
+        return days !== null && days < -(Number(contract.reviewPeriod) || 7)
+      })() && (
+        <div style={{
+          background: 'var(--yellow-bg)', border: '1px solid rgba(245,158,11,0.3)',
+          borderRadius: 'var(--radius)', padding: '12px 16px', marginBottom: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+        }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--yellow)' }}>
+            ⏰ Review period expired — you can now claim payment.
+          </div>
+          <button
+            className="btn btn-warning btn-sm"
+            disabled={actionLoading === 'claim'}
+            onClick={async () => {
+              setActionLoading('claim')
+              await onApprove?.() // reuses approve handler — maps to claim_after_deadline
+              setActionLoading(null)
+            }}
+          >
+            {actionLoading === 'claim' ? '⏳...' : '💰 Claim'}
+          </button>
+        </div>
+      )}
+
       {/* ── Attachment preview ───────────────────────────────────────────────── */}
       {attachments.length > 0 && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -403,7 +662,7 @@ export default function ContractChat({ contract, wallet, onSubmitWork }) {
         <textarea
           ref={inputRef}
           className="form-textarea"
-          placeholder={`Message ${isClient ? 'freelancer' : 'client'}... (Enter to send, Shift+Enter for new line)`}
+          placeholder={`Message ${isClientSafe ? 'freelancer' : 'client'}... (Enter to send, Shift+Enter for new line)`}
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -416,7 +675,7 @@ export default function ContractChat({ contract, wallet, onSubmitWork }) {
         />
 
         {/* Submit work button — only for freelancer when contract is ACTIVE */}
-        {isFreelancer && contract.status === CONTRACT_STATES.ACTIVE && (
+        {isFreelancerSafe && liveStatus === CONTRACT_STATES.ACTIVE && (
           <button
             className="btn btn-warning btn-sm"
             style={{ flexShrink: 0, padding: '8px 12px' }}
@@ -439,7 +698,10 @@ export default function ContractChat({ contract, wallet, onSubmitWork }) {
       </div>
 
       <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 6, textAlign: 'center' }}>
-        🔒 Private to {truncateAddr(contract.client)} & {truncateAddr(contract.freelancer)} · Messages stored locally
+        {useSupabase
+          ? <span style={{ color: 'var(--green)' }}>🟢 Real-time · Messages sync across devices</span>
+          : <span style={{ color: 'var(--yellow)' }}>⚠️ Local only — <a href="https://supabase.com" target="_blank" rel="noreferrer" style={{ color: 'var(--yellow)' }}>set up Supabase</a> for cross-device chat</span>
+        }
       </div>
     </div>
   )
