@@ -35,7 +35,8 @@
 9. [User Flow](#user-flow)
 10. [Tech Stack](#tech-stack)
 11. [Phase 2 Roadmap — Improvements Based on User Feedback](#phase-2-roadmap--improvements-based-on-user-feedback)
-12. [Contributing](#contributing)
+12. [User Feedback — Phase 1 Testing](#user-feedback--phase-1-testing)
+13. [Contributing](#contributing)
 
 ---
 
@@ -751,6 +752,32 @@ Plan:
 | [`22b6f63`](https://github.com/Vedang24-hash/TrustWork26/commit/22b6f63) | `full working project` — complete UI, smart contract framework, wallet integration, chat system |
 | [`02d44fb`](https://github.com/Vedang24-hash/TrustWork26/commit/02d44fb) | `chore: gitignore + cleanup` — production cleanup, all Phase 1 critical bug fixes |
 | [`c6e56b2`](https://github.com/Vedang24-hash/TrustWork26/commit/c6e56b2) | `complete` — mobile responsive design, Vercel deployment, CI/CD pipeline, README documentation |
+
+---
+
+## User Feedback — Phase 1 Testing
+
+Feedback collected from real users during Phase 1 testing via the TrustWork Feedback Form.
+
+| # | Name | Wallet Address | Rating | Feedback |
+|---|------|---------------|--------|----------|
+| 1 | Sarthak Dhere | `GCCKKVQS...P23F5` | ⭐⭐⭐⭐⭐ | Useful application |
+| 2 | Nisha Bahirat | `GBTT2S5A...BBJQN` | ⭐⭐⭐⭐⭐ | Idea is actually good and needs to be scaled for production |
+| 3 | Pramod Bahirat | `GBJWWOUG...GVRL` | ⭐⭐⭐⭐⭐ | Practically structured idea |
+| 4 | Manisha Bahirat | `GCHKNCO7...JWKY` | ⭐⭐⭐⭐⭐ | Great Work!! |
+| 5 | Vineet Kadam | `GAXJUGOZ...F6F2` | ⭐⭐⭐⭐⭐ | Nice Work |
+
+**Average Rating: 5.0 / 5.0** across 5 respondents
+
+### Key Takeaways from Feedback
+
+| Theme | Insight | Action Taken |
+|-------|---------|-------------|
+| Production readiness | "Needs to be scaled for production" | Phase 2 roadmap includes real IPFS, multi-token support, TypeScript migration |
+| Concept validation | "Practically structured idea" | Core escrow + chat + arbitration flow validated by all testers |
+| Overall satisfaction | 5/5 from all respondents | Confirms the UX and concept resonates with target users |
+
+> Wallet addresses are partially redacted for privacy. Full data available in `Trust-Work26 Feedback form.csv`.
 
 ---
 
