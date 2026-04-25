@@ -317,8 +317,8 @@ export default function ContractChat({ contract, wallet, role, onSubmitWork, onA
                           {msg.text.replace(/^\*\*Work Submitted\*\* — Freelancer marked work as complete\.\n\n/, '').replace(/\n\nClient: please review and approve or raise a dispute below\.$/, '')}
                         </p>
 
-                        {/* Client action buttons — only show if not yet resolved */}
-                        {contract.status !== CONTRACT_STATES.COMPLETED && contract.status !== CONTRACT_STATES.REFUNDED && contract.status !== CONTRACT_STATES.DISPUTED && (
+                        {/* Client action buttons — only show to CLIENT and if not yet resolved */}
+                        {isClientSafe && contract.status !== CONTRACT_STATES.COMPLETED && contract.status !== CONTRACT_STATES.REFUNDED && contract.status !== CONTRACT_STATES.DISPUTED && (
                           <div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 8 }}>
                               Review the deliverables in the <strong>Deliverables</strong> tab, then:
@@ -506,8 +506,8 @@ export default function ContractChat({ contract, wallet, role, onSubmitWork, onA
         <div ref={bottomRef} />
       </div>
 
-      {/* ── CLIENT ACTION BAR — show whenever submission exists and not yet resolved ── */}
-      {messages.some(m => m.type === 'submission')
+      {/* ── CLIENT ACTION BAR — show only to CLIENT when submission exists and not yet resolved ── */}
+      {isClientSafe && messages.some(m => m.type === 'submission')
         && contract.status !== CONTRACT_STATES.COMPLETED
         && contract.status !== CONTRACT_STATES.REFUNDED
         && contract.status !== CONTRACT_STATES.DISPUTED

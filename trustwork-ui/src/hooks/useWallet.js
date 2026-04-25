@@ -106,7 +106,7 @@ export function useWallet() {
       const connResult = await isConnected()
       if (!connResult?.isConnected) {
         setInstalled(false)
-        setError('Freighter extension not detected. Please install it first.')
+        setError('Freighter wallet extension is not installed. Please install it from the Chrome Web Store or Firefox Add-ons and try again.')
         return null
       }
 
@@ -115,7 +115,14 @@ export function useWallet() {
       // requestAccess() opens the Freighter popup asking user to approve
       const accessResult = await requestAccess()
       if (accessResult?.error) {
-        setError(accessResult.error)
+        const errorMsg = accessResult.error.toLowerCase()
+        if (errorMsg.includes('user declined') || errorMsg.includes('rejected')) {
+          setError('Connection request was declined. Please try again and approve the connection in Freighter.')
+        } else if (errorMsg.includes('locked')) {
+          setError('Freighter wallet is locked. Please unlock it and try again.')
+        } else {
+          setError(`Freighter error: ${accessResult.error}`)
+        }
         return null
       }
 
@@ -123,7 +130,7 @@ export function useWallet() {
       const netResult  = await getNetwork()
 
       if (!addrResult?.address) {
-        setError('Could not retrieve address from Freighter.')
+        setError('Could not retrieve wallet address from Freighter. Please make sure you have an account set up.')
         return null
       }
 
@@ -135,7 +142,14 @@ export function useWallet() {
 
       return addrResult.address
     } catch (err) {
-      setError(err?.message || 'Connection failed. Please try again.')
+      const errorMsg = err?.message || ''
+      if (errorMsg.includes('timeout')) {
+        setError('Connection timed out. Please check if Freighter is responding and try again.')
+      } else if (errorMsg.includes('network')) {
+        setError('Network error. Please check your internet connection and try again.')
+      } else {
+        setError(errorMsg || 'Failed to connect wallet. Please try again.')
+      }
       return null
     } finally {
       setConnecting(false)

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CONTRACT_STATES, daysRemaining, formatXLM } from '../utils/contract'
+import { CONTRACT_STATES, daysRemaining, formatXLM, validateSubmission, validateDisputeReason } from '../utils/contract'
 import FileUploader from './FileUploader'
 
 // ── Deliverable types the freelancer can attach ───────────────────────────────
@@ -19,6 +19,7 @@ export default function ActionPanel({ contract, wallet, role, onAction }) {
   const [uploadedFiles, setUploadedFiles] = useState([])
   const [disputeReason, setDisputeReason] = useState('')
   const [loading, setLoading]             = useState(null)
+  const [validationErrors, setValidationErrors] = useState({})
 
   const isClient     = contract.client === wallet
   const isFreelancer = contract.freelancer === wallet
@@ -31,13 +32,39 @@ export default function ActionPanel({ contract, wallet, role, onAction }) {
   const reviewExpired = days !== null && days < -(Number(contract.reviewPeriod) || 7)
 
   async function handle(action, payload) {
+    // Validate before submitting
+    setValidationErrors({})
+    
+    if (action === 'submit') {
+      const errors = validateSubmission(payload.note, payload.deliverables, payload.uploadedFiles)
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors)
+        return
+      }
+    }
+    
+    if (action === 'dispute') {
+      const error = validateDisputeReason(payload.reason)
+      if (error) {
+        setValidationErrors({ dispute: error })
+        return
+      }
+    }
+    
     setLoading(action)
-    await onAction(action, payload)
-    setLoading(null)
-    setNote('')
-    setDeliverables([{ type: 'link', url: '', label: '' }])
-    setUploadedFiles([])
-    setDisputeReason('')
+    try {
+      await onAction(action, payload)
+      setNote('')
+      setDeliverables([{ type: 'link', url: '', label: '' }])
+      setUploadedFiles([])
+      setDisputeReason('')
+      setValidationErrors({})
+    } catch (err) {
+      // Error is already handled by parent component
+      console.error('Action failed:', err)
+    } finally {
+      setLoading(null)
+    }
   }
 
   // ── Deliverable helpers ────────────────────────────────────────────────────
@@ -76,6 +103,29 @@ export default function ActionPanel({ contract, wallet, role, onAction }) {
 
   return (
     <div className="action-panel">
+
+      {/* ── CLIENT: Fund Contract (AWAITING_DEPOSIT) ────────────────────────── */}
+      {isClientSafe && contract.status === CONTRACT_STATES.AWAITING_DEPOSIT && (
+        <div className="action-card">
+          <div className="action-card-title">💰 Fund Contract</div>
+          <div className="action-card-desc">
+            The contract was created but funding failed. You need to deposit{' '}
+            <strong style={{ color: 'var(--accent)' }}>{formatXLM(contract.amount)}</strong> to activate it.
+            {contract.fundingError && (
+              <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--red-bg)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem', color: 'var(--red)' }}>
+                ⚠️ Previous error: {contract.fundingError}
+              </div>
+            )}
+          </div>
+          <button
+            className="btn btn-primary btn-full"
+            onClick={() => handle('fund', {})}
+            disabled={loading === 'fund'}
+          >
+            {loading === 'fund' ? '⏳ Funding...' : '💰 Fund Contract'}
+          </button>
+        </div>
+      )}
 
       {/* ── FREELANCER: Submit Work ─────────────────────────────────────────── */}
       {isFreelancerSafe && contract.status === CONTRACT_STATES.ACTIVE && (
@@ -155,6 +205,13 @@ export default function ActionPanel({ contract, wallet, role, onAction }) {
             style={{ marginBottom: 14 }}
           />
 
+          {/* Validation errors */}
+          {validationErrors.submission && (
+            <div className="alert alert-danger" style={{ marginBottom: 14, fontSize: '0.85rem' }}>
+              ⚠️ {validationErrors.submission}
+            </div>
+          )}
+
           <button
             className="btn btn-primary btn-full"
             onClick={() => handle('submit', {
@@ -162,7 +219,7 @@ export default function ActionPanel({ contract, wallet, role, onAction }) {
               deliverables: validDeliverables,
               uploadedFiles,
             })}
-            disabled={loading === 'submit' || (!note.trim() && validDeliverables.length === 0 && uploadedFiles.length === 0)}
+            disabled={loading === 'submit'}
           >
             {loading === 'submit' ? '⏳ Submitting to Stellar...' : `📤 Submit Work${uploadedFiles.length > 0 ? ` (${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''})` : ''}`}
           </button>
@@ -175,12 +232,19 @@ export default function ActionPanel({ contract, wallet, role, onAction }) {
           <div className="action-card">
             <div className="action-card-title">✅ Approve & Release Payment</div>
             <div className="action-card-desc">
-              Satisfied with the deliverables? Approving releases{' '}
-              <strong style={{ color: 'var(--accent)' }}>{formatXLM(contract.amount)}</strong> to the freelancer instantly via the smart contract.
+              Review the deliverables in the <strong>📦 Deliverables</strong> tab above. Once satisfied, approving will instantly release{' '}
+              <strong style={{ color: 'var(--accent)' }}>{formatXLM(contract.amount)}</strong> to the freelancer via the Soroban smart contract.
+              <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem' }}>
+                ⚠️ <strong>This action is irreversible.</strong> Funds will be transferred immediately to the freelancer's wallet.
+              </div>
             </div>
             <button
               className="btn btn-success btn-full"
-              onClick={() => handle('approve', {})}
+              onClick={() => {
+                if (window.confirm(`Are you sure you want to release ${formatXLM(contract.amount)} to the freelancer?\n\nThis action cannot be undone. The funds will be transferred immediately.`)) {
+                  handle('approve', {})
+                }
+              }}
               disabled={loading === 'approve'}
             >
               {loading === 'approve' ? '⏳ Processing on Stellar...' : '✅ Approve & Release Payment'}
@@ -200,10 +264,15 @@ export default function ActionPanel({ contract, wallet, role, onAction }) {
               rows={3}
               style={{ marginBottom: 12 }}
             />
+            {validationErrors.dispute && (
+              <div className="alert alert-danger" style={{ marginBottom: 12, fontSize: '0.85rem' }}>
+                ⚠️ {validationErrors.dispute}
+              </div>
+            )}
             <button
               className="btn btn-danger btn-full"
               onClick={() => handle('dispute', { reason: disputeReason })}
-              disabled={loading === 'dispute' || !disputeReason.trim()}
+              disabled={loading === 'dispute'}
             >
               {loading === 'dispute' ? '⏳ Raising...' : '⚠️ Raise Dispute'}
             </button>

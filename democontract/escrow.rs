@@ -20,11 +20,17 @@ use crate::storage;
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 /// Transfer `amount` tokens from `from` → `to` using the SAC token interface.
-/// The contract must be pre-authorized as a spender (via allowance) for
-/// transfers FROM the buyer. For transfers FROM the contract, it is the sender.
-fn transfer_token(env: &Env, token: &Address, from: &Address, to: &Address, amount: i128) {
+/// Uses transfer_from when pulling from buyer (requires allowance).
+/// Uses transfer when sending from contract (contract is the sender).
+fn transfer_token_from(env: &Env, token: &Address, from: &Address, to: &Address, amount: i128) {
     let client = token::Client::new(env, token);
-    client.transfer(from, to, &amount);
+    client.transfer_from(&env.current_contract_address(), from, to, &amount);
+}
+
+fn transfer_token(env: &Env, token: &Address, to: &Address, amount: i128) {
+    let client = token::Client::new(env, token);
+    let contract_addr = env.current_contract_address();
+    client.transfer(&contract_addr, to, &amount);
 }
 
 /// Emit a contract event for off-chain indexing (frontend, explorers).
@@ -56,9 +62,9 @@ pub fn deposit(env: &Env, escrow_id: u64) -> Result<(), EscrowError> {
         return Err(EscrowError::DeadlineExpired);
     }
 
-    // Transfer tokens: buyer → this contract
+    // Transfer tokens: buyer → this contract (using transfer_from with allowance)
     let contract_addr = env.current_contract_address();
-    transfer_token(env, &cfg.token, &cfg.buyer, &contract_addr, cfg.amount);
+    transfer_token_from(env, &cfg.token, &cfg.buyer, &contract_addr, cfg.amount);
 
     cfg.state = EscrowState::Funded;
     storage::update_escrow(env, &cfg);
@@ -95,8 +101,7 @@ pub fn approve_and_release(env: &Env, escrow_id: u64) -> Result<(), EscrowError>
     cfg.buyer.require_auth();
 
     // Transfer tokens: contract → seller
-    let contract_addr = env.current_contract_address();
-    transfer_token(env, &cfg.token, &contract_addr, &cfg.seller, cfg.amount);
+    transfer_token(env, &cfg.token, &cfg.seller, cfg.amount);
 
     cfg.state = EscrowState::Completed;
     storage::update_escrow(env, &cfg);
@@ -120,8 +125,7 @@ pub fn refund(env: &Env, escrow_id: u64) -> Result<(), EscrowError> {
     cfg.buyer.require_auth();
 
     // Transfer tokens: contract → buyer
-    let contract_addr = env.current_contract_address();
-    transfer_token(env, &cfg.token, &contract_addr, &cfg.buyer, cfg.amount);
+    transfer_token(env, &cfg.token, &cfg.buyer, cfg.amount);
 
     cfg.state = EscrowState::Refunded;
     storage::update_escrow(env, &cfg);
@@ -168,17 +172,15 @@ pub fn resolve_dispute(
     let arbitrator = cfg.arbitrator.clone().ok_or(EscrowError::NoArbitrator)?;
     arbitrator.require_auth();
 
-    let contract_addr = env.current_contract_address();
-
     match resolution {
         Resolution::ReleaseToSeller => {
             // Full amount → seller
-            transfer_token(env, &cfg.token, &contract_addr, &cfg.seller, cfg.amount);
+            transfer_token(env, &cfg.token, &cfg.seller, cfg.amount);
             cfg.state = EscrowState::Completed;
         }
         Resolution::RefundToBuyer => {
             // Full amount → buyer
-            transfer_token(env, &cfg.token, &contract_addr, &cfg.buyer, cfg.amount);
+            transfer_token(env, &cfg.token, &cfg.buyer, cfg.amount);
             cfg.state = EscrowState::Refunded;
         }
         Resolution::Split(seller_pct) => {
@@ -191,10 +193,10 @@ pub fn resolve_dispute(
             let buyer_amount = cfg.amount - seller_amount;
 
             if seller_amount > 0 {
-                transfer_token(env, &cfg.token, &contract_addr, &cfg.seller, seller_amount);
+                transfer_token(env, &cfg.token, &cfg.seller, seller_amount);
             }
             if buyer_amount > 0 {
-                transfer_token(env, &cfg.token, &contract_addr, &cfg.buyer, buyer_amount);
+                transfer_token(env, &cfg.token, &cfg.buyer, buyer_amount);
             }
             // Completed regardless of split direction
             cfg.state = EscrowState::Completed;
@@ -226,8 +228,7 @@ pub fn claim_after_deadline(env: &Env, escrow_id: u64) -> Result<(), EscrowError
     }
 
     // Transfer tokens: contract → seller
-    let contract_addr = env.current_contract_address();
-    transfer_token(env, &cfg.token, &contract_addr, &cfg.seller, cfg.amount);
+    transfer_token(env, &cfg.token, &cfg.seller, cfg.amount);
 
     cfg.state = EscrowState::Completed;
     storage::update_escrow(env, &cfg);

@@ -8,7 +8,7 @@
 
 import { useState } from 'react'
 import { CONTRACT_TEMPLATES, REFUND_POLICY_LABELS, reviewPeriodLabel } from '../utils/contractTemplates'
-import { truncateAddr, formatXLM } from '../utils/contract'
+import { truncateAddr, formatXLM, validateContractForm } from '../utils/contract'
 
 const STEPS = ['Template', 'Parties & Payment', 'Terms', 'Review & Deploy']
 
@@ -52,25 +52,71 @@ export default function ContractForm({ onSubmit, loading, wallet }) {
   // ── Validation per step ────────────────────────────────────────────────────
   function validateStep(s) {
     const e = {}
+    
+    // Step 1: Parties & Payment
     if (s === 1) {
-      if (!form.title.trim())                          e.title      = 'Required'
-      if (!form.freelancer.trim())                     e.freelancer = 'Required'
-      else if (form.freelancer === wallet)             e.freelancer = 'Cannot be your own address'
-      else if (form.freelancer.length < 10)            e.freelancer = 'Enter a valid Stellar address'
-      if (!form.amount || Number(form.amount) <= 0)   e.amount     = 'Must be greater than 0'
-    }
-    if (s === 2) {
-      if (!form.deadline)                              e.deadline   = 'Required'
-      else if (new Date(form.deadline) <= new Date())  e.deadline   = 'Must be in the future'
-      if (form.enableArbitrator && !form.arbitrator.trim()) e.arbitrator = 'Enter arbitrator address'
-      if (form.enableMilestones) {
-        const total = form.milestones.reduce((sum, m) => sum + Number(m.pct || 0), 0)
-        if (total !== 100) e.milestones = `Milestone percentages must total 100% (currently ${total}%)`
-        form.milestones.forEach((m, i) => {
-          if (!m.label.trim()) e[`ms_${i}`] = 'Label required'
-        })
+      if (!form.title?.trim()) {
+        e.title = 'Project title is required'
+      } else if (form.title.trim().length < 3) {
+        e.title = 'Title must be at least 3 characters'
+      } else if (form.title.trim().length > 100) {
+        e.title = 'Title must be less than 100 characters'
+      }
+      
+      if (!form.freelancer?.trim()) {
+        e.freelancer = 'Freelancer address is required'
+      } else if (form.freelancer.length < 10) {
+        e.freelancer = 'Enter a valid Stellar address'
+      } else if (form.freelancer === wallet) {
+        e.freelancer = 'Cannot be your own address'
+      }
+      
+      const amount = Number(form.amount)
+      if (!form.amount || isNaN(amount)) {
+        e.amount = 'Amount is required'
+      } else if (amount <= 0) {
+        e.amount = 'Must be greater than 0'
       }
     }
+    
+    // Step 2: Terms & Conditions
+    if (s === 2) {
+      if (!form.deadline) {
+        e.deadline = 'Deadline is required'
+      } else {
+        const deadlineDate = new Date(form.deadline)
+        const now = new Date()
+        if (deadlineDate <= now) {
+          e.deadline = 'Must be in the future'
+        }
+      }
+      
+      if (form.enableArbitrator && !form.arbitrator?.trim()) {
+        e.arbitrator = 'Enter arbitrator address'
+      }
+      
+      if (form.enableMilestones) {
+        const total = form.milestones.reduce((sum, m) => sum + Number(m.pct || 0), 0)
+        if (Math.abs(total - 100) > 0.01) {
+          e.milestones = `Milestone percentages must total 100% (currently ${total}%)`
+        }
+        form.milestones.forEach((m, i) => {
+          if (!m.label?.trim()) {
+            e[`ms_${i}`] = 'Label required'
+          }
+          if (Number(m.pct || 0) <= 0) {
+            e[`ms_${i}_pct`] = 'Percentage must be greater than 0%'
+          }
+        })
+        
+        // Check if there are any valid milestones
+        const validMilestones = form.milestones.filter(m => Number(m.pct || 0) > 0)
+        if (validMilestones.length === 0) {
+          e.milestones = 'At least one milestone must have a percentage greater than 0%'
+        }
+      }
+    }
+    
     return e
   }
 
@@ -83,7 +129,24 @@ export default function ContractForm({ onSubmit, loading, wallet }) {
   function back() { setStep(s => s - 1); setErrors({}) }
 
   function handleSubmit() {
-    onSubmit(form)
+    try {
+      // Final comprehensive validation before submission
+      const errors = validateContractForm(form, wallet)
+      if (Object.keys(errors).length > 0) {
+        setErrors(errors)
+        // Go back to the first step with errors
+        if (errors.title || errors.freelancer || errors.amount) {
+          setStep(1)
+        } else if (errors.deadline || errors.arbitrator || errors.milestones) {
+          setStep(2)
+        }
+        return
+      }
+      onSubmit(form)
+    } catch (error) {
+      console.error('Form validation error:', error)
+      setErrors({ submit: 'An error occurred while validating the form. Please check all fields and try again.' })
+    }
   }
 
   // ── Milestone helpers ──────────────────────────────────────────────────────
@@ -322,6 +385,7 @@ export default function ContractForm({ onSubmit, loading, wallet }) {
                         onChange={e => setMilestone(i, 'pct', e.target.value)}
                         style={{ textAlign: 'center' }}
                       />
+                      {errors[`ms_${i}_pct`] && <span style={{ color: 'var(--red)', fontSize: '0.75rem', display: 'block', marginTop: 2 }}>{errors[`ms_${i}_pct`]}</span>}
                     </div>
                     {form.milestones.length > 1 && (
                       <button className="btn btn-danger btn-sm" onClick={() => removeMilestone(i)} style={{ marginTop: 0 }}>✕</button>
@@ -343,7 +407,7 @@ export default function ContractForm({ onSubmit, loading, wallet }) {
 
       {/* ── STEP 3: Review & Deploy ── */}
       {step === 3 && (
-        <ContractPreview form={form} wallet={wallet} onDeploy={handleSubmit} loading={loading} />
+        <ContractPreview form={form} wallet={wallet} onDeploy={handleSubmit} loading={loading} errors={errors} />
       )}
 
       {/* ── Navigation ── */}
@@ -386,7 +450,7 @@ function Toggle({ value, onChange }) {
 
 // ── ContractPreview ───────────────────────────────────────────────────────────
 // Shows a full summary of what will be deployed to the Soroban contract.
-function ContractPreview({ form, wallet, onDeploy, loading }) {
+function ContractPreview({ form, wallet, onDeploy, loading, errors }) {
   const totalAmount = Number(form.amount) || 0
   const tpl = CONTRACT_TEMPLATES.find(t => t.id === form.template)
 
@@ -395,6 +459,13 @@ function ContractPreview({ form, wallet, onDeploy, loading }) {
       <div className="alert alert-info" style={{ marginBottom: 20 }}>
         ⚡ Review your contract configuration before deploying to Stellar. This cannot be changed after funding.
       </div>
+
+      {/* Validation errors */}
+      {errors?.submit && (
+        <div className="alert alert-danger" style={{ marginBottom: 20 }}>
+          ⚠️ {errors.submit}
+        </div>
+      )}
 
       {/* Escrow amount visual */}
       <div className="escrow-visual" style={{ marginBottom: 20 }}>

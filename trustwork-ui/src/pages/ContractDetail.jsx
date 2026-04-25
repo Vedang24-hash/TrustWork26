@@ -104,6 +104,27 @@ export default function ContractDetail({ contract, wallet, onUpdate, setPage, op
         } else {
           updated = applyRefund(contract, fakeTxHash)
         }
+      } else if (action === 'fund') {
+        if (!isDemo) {
+          openTx('Fund Contract', `Depositing ${formatXLM(contract.amount)} into escrow`)
+          const { txHash } = await sorobanDeposit(wallet, escrowId)
+          txSuccess(txHash)
+          updated = { 
+            ...contract, 
+            status: CONTRACT_STATES.ACTIVE, 
+            fundedAt: new Date().toISOString(),
+            depositTxHash: txHash,
+            fundingError: null
+          }
+        } else {
+          updated = { 
+            ...contract, 
+            status: CONTRACT_STATES.ACTIVE, 
+            fundedAt: new Date().toISOString(),
+            depositTxHash: fakeTxHash,
+            fundingError: null
+          }
+        }
       }
     } catch (err) {
       // On-chain call failed — fall back to simulation so UI still works
@@ -113,6 +134,7 @@ export default function ContractDetail({ contract, wallet, onUpdate, setPage, op
       else if (action === 'claim')   updated = applyClaim(contract, fakeTxHash)
       else if (action === 'refund')  updated = applyRefund(contract, fakeTxHash)
       else if (action === 'submit')  updated = applySubmitWork(contract, fakeTxHash, payload?.note, payload?.deliverables, payload?.uploadedFiles)
+      else if (action === 'fund')    updated = { ...contract, status: CONTRACT_STATES.ACTIVE, fundedAt: new Date().toISOString(), depositTxHash: fakeTxHash, fundingError: null }
       else { txError(err); return }
     }
 
@@ -124,6 +146,7 @@ export default function ContractDetail({ contract, wallet, onUpdate, setPage, op
       dispute: `⚠️ Dispute raised: "${payload?.reason?.slice(0, 80)}"`,
       claim:   '💰 Freelancer claimed payment after review period expired.',
       refund:  '↩️ Client refunded. Funds returned.',
+      fund:    '💰 Contract funded. Escrow is now active.',
     }
     if (chatEvents[action]) postSystemEvent(chatEvents[action])
     if (action === 'submit') setActiveTab('chat')
@@ -177,6 +200,30 @@ export default function ContractDetail({ contract, wallet, onUpdate, setPage, op
       {contract.status === CONTRACT_STATES.DISPUTED && (
         <div className="alert alert-danger mb-24">
           ⚖️ Dispute raised on {formatDate(contract.disputedAt)} — "{contract.disputeReason}"
+        </div>
+      )}
+
+      {/* Client review alert */}
+      {isClientSafe && contract.status === CONTRACT_STATES.SUBMITTED && (
+        <div className="alert alert-warning mb-24" style={{ background: 'var(--yellow-bg)', border: '1px solid rgba(245,158,11,0.3)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: '1.5rem' }}>📦</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, color: 'var(--text-heading)', marginBottom: 4 }}>
+                Work Submitted - Review Required
+              </div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                The freelancer has submitted their work. Review the deliverables and either approve to release payment or raise a dispute.
+              </div>
+            </div>
+            <button
+              className="btn btn-primary"
+              onClick={() => setActiveTab('deliverables')}
+              style={{ flexShrink: 0 }}
+            >
+              View Deliverables →
+            </button>
+          </div>
         </div>
       )}
 

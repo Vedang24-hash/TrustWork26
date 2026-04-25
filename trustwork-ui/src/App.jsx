@@ -8,7 +8,7 @@ import CreateContract from './pages/CreateContract'
 import ContractDetail from './pages/ContractDetail'
 import Arbitration from './pages/Arbitration'
 import { useWallet } from './hooks/useWallet'
-import { loadContracts, addContract, updateContract } from './utils/contract'
+import { loadContracts, addContract, updateContract, applyApprove } from './utils/contract'
 import { NETWORK, sorobanGetEscrow, stroopsToXlm } from './utils/stellar'
 
 function Toast({ toasts }) {
@@ -81,14 +81,14 @@ export default function App() {
         if (found) {
           setSelected(found)
           setPage('detail')
-          history.replaceState(null, '', window.location.pathname)
+          window.history.replaceState(null, '', window.location.pathname)
         }
         // If not found locally, stay on chat-invite — it will fetch from chain
       }
     } else {
       setContracts([])
     }
-  }, [wallet])
+  }, [wallet, chatContractId])
 
   // ── Toast helpers ──────────────────────────────────────────────────────────
   function addToast(message, type = 'info', icon = '⚡') {
@@ -169,7 +169,7 @@ export default function App() {
       const fresh = contracts.find(c => c.id === selected.id)
       if (fresh) setSelected(fresh)
     }
-  }, [contracts])
+  }, [contracts, selected])
 
   return (
     <>
@@ -191,9 +191,8 @@ export default function App() {
           setPage={setPage}
           wallet={wallet}
           onAction={async (contract, action) => {
-            // Quick approve directly from dashboard — no need to open detail page
+            // Quick approve directly from dashboard
             const fakeTxHash = 'DEMO_' + Math.random().toString(36).slice(2, 18).toUpperCase()
-            const { applyApprove, updateContract } = await import('./utils/contract')
             const updated = applyApprove(contract, fakeTxHash)
             updateContract(wallet, updated)
             setContracts(prev => prev.map(c => c.id === updated.id ? updated : c))
@@ -241,7 +240,7 @@ export default function App() {
           onOpen={(contract) => {
             setSelected(contract)
             setPage('detail')
-            history.replaceState(null, '', window.location.pathname)
+            window.history.replaceState(null, '', window.location.pathname)
           }}
         />
       )}
@@ -395,12 +394,12 @@ function ChatInviteLanding({ contractId, wallet, contracts, onConnect, onOpen, o
       setFetchError(err?.message || 'Failed to load contract from chain.')
       setFetching(false)
     })
-  }, [wallet, localContract, escrowId])
+  }, [wallet, localContract, escrowId, contractId, onAddContract])
 
   // Open chat as soon as contract is available
   useEffect(() => {
     if (wallet && contract) onOpen(contract)
-  }, [wallet, contract])
+  }, [wallet, contract, onOpen])
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', padding: 24 }}>
