@@ -1,11 +1,22 @@
-# TrustWork - Production-Ready Decentralized Freelance Escrow Platform
+# TrustWork — Decentralized Freelance Escrow on Stellar
 
-> **Enterprise-grade blockchain escrow solution built on Stellar Network with Soroban smart contracts**
+> **Blockchain escrow platform built on Stellar Network with Soroban smart contracts**
 
-[![Live Production App](https://img.shields.io/badge/🚀_Live_App-Production_Ready-success?style=for-the-badge)](https://trust-work26.vercel.app)
-[![Stellar Network](https://img.shields.io/badge/Stellar-Mainnet_Ready-blue?style=for-the-badge&logo=stellar)](https://stellar.org)
-[![Smart Contract](https://img.shields.io/badge/Soroban-Audited_&_Deployed-purple?style=for-the-badge)](https://soroban.stellar.org)
-[![Security](https://img.shields.io/badge/Security-Production_Grade-green?style=for-the-badge&logo=shield)](https://stellar.expert/explorer/testnet)
+[![Live App](https://img.shields.io/badge/🚀_Live_App-trust--work26.vercel.app-success?style=for-the-badge)](https://trust-work26.vercel.app)
+[![Stellar Network](https://img.shields.io/badge/Stellar-Testnet-blue?style=for-the-badge&logo=stellar)](https://stellar.org)
+[![Smart Contract](https://img.shields.io/badge/Soroban-Deployed-purple?style=for-the-badge)](https://soroban.stellar.org)
+
+---
+
+## 🌐 Live Demo
+
+**→ [https://trust-work26.vercel.app](https://trust-work26.vercel.app)**
+
+### 📹 Demo Video
+
+https://github.com/Vedang24-hash/TrustWork26/raw/master/ScreenRecording/demo.mp4
+
+> *Full walkthrough: wallet connection → contract creation → fund escrow → submit work → approve & release payment*
 
 ---
 
@@ -366,7 +377,7 @@ TrustWork is **enterprise-ready** and **production-tested**. With comprehensive 
 
 **Built with ❤️ for the future of work**
 
-[🌐 Live App](https://trust-work26.vercel.app) • [📚 Documentation](https://docs.trustwork.app) • [💬 Community](https://discord.gg/trustwork) • [🐛 Issues](https://github.com/Vedang24-hash/TrustWork26/issues)
+[🌐 Live App](https://trust-work26.vercel.app) • [� Demo Video](https://github.com/Vedang24-hash/TrustWork26/raw/master/ScreenRecording/demo.mp4) • [💬 Community](https://discord.gg/trustwork) • [🐛 Issues](https://github.com/Vedang24-hash/TrustWork26/issues)
 
 **© 2026 TrustWork. All rights reserved.**
 
