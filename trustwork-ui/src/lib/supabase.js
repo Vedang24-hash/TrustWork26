@@ -1,28 +1,37 @@
 // =============================================================================
 // supabase.js — Supabase client singleton
-// Exported as a promise so it can be awaited once on first use.
-// Returns null if env vars are missing or package not installed.
+// Lazy-loaded: only initializes if env vars are present
 // =============================================================================
 
-const url = import.meta.env.VITE_SUPABASE_URL
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY
-
 let _client = null
+let _initialized = false
 
 export async function getSupabase() {
-  if (_client !== null) return _client
+  if (_initialized) return _client
+  _initialized = true
 
-  if (!url || !key || url.includes('your-project')) {
-    _client = false   // mark as "checked, not available"
+  const url = import.meta.env.VITE_SUPABASE_URL
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+  if (!url || !key) {
+    _client = null
     return null
   }
 
   try {
     const { createClient } = await import('@supabase/supabase-js')
-    _client = createClient(url, key)
+    _client = createClient(url, key, {
+      auth: { persistSession: false },
+      realtime: { params: { eventsPerSecond: 10 } },
+    })
     return _client
-  } catch {
-    _client = false
+  } catch (err) {
+    console.warn('Supabase init failed:', err.message)
+    _client = null
     return null
   }
+}
+
+export function isSupabaseConfigured() {
+  return !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
 }

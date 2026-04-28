@@ -98,7 +98,7 @@ export default function CreateContract({ onCreate, wallet, setPage, onConnect, o
           amountXlm:    msAmount,
           tokenAddress,
           deadlineUnix,
-          description:  msTitle.slice(0, 32).replace(/\s+/g, '_'),
+          description:  msTitle, // sanitizeForSymbol() inside sorobanCreateEscrow handles all cleanup
         })
 
         console.log('Escrow created:', { escrowId, createTxHash })

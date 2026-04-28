@@ -255,7 +255,6 @@ export default function App() {
           txError={txError}
         />
       )}
-
       {walletOpen && (
         <WalletModal walletState={walletState} onClose={() => setWalletOpen(false)} />
       )}
