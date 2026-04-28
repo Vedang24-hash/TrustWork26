@@ -8,7 +8,7 @@ import CreateContract from './pages/CreateContract'
 import ContractDetail from './pages/ContractDetail'
 import Arbitration from './pages/Arbitration'
 import { useWallet } from './hooks/useWallet'
-import { loadContracts, addContract, updateContract, applyApprove } from './utils/contract'
+import { loadContracts, addContract, updateContract } from './utils/contract'
 import { NETWORK, sorobanGetEscrow, stroopsToXlm } from './utils/stellar'
 
 function Toast({ toasts }) {
@@ -36,6 +36,22 @@ export default function App() {
   const walletState = useWallet()
   const { address: wallet, disconnect } = walletState
 
+  // ── One-time cleanup: remove any seeded demo contracts from localStorage ──
+  useEffect(() => {
+    const DEMO_IDS = ['TW-A1B2C3', 'TW-D4E5F6', 'TW-G7H8I9', 'TW-J1K2L3']
+    // Scan all tw_contracts_* keys and strip demo entries
+    Object.keys(localStorage).forEach(key => {
+      if (!key.startsWith('tw_contracts_')) return
+      try {
+        const contracts = JSON.parse(localStorage.getItem(key) || '[]')
+        const cleaned = contracts.filter(c => !DEMO_IDS.includes(c.id))
+        if (cleaned.length !== contracts.length) {
+          localStorage.setItem(key, JSON.stringify(cleaned))
+        }
+      } catch { /* ignore */ }
+    })
+  }, [])
+
   // ── Parse invite link on load: #chat/TW-XXXXXX ────────────────────────────
   useEffect(() => {
     function handleHash() {
@@ -55,22 +71,7 @@ export default function App() {
   useEffect(() => {
     if (wallet) {
       const stored = loadContracts(wallet)
-
-      // Check if stored contracts have the correct wallet address as client/freelancer
-      // If they use the old MOCK_WALLET address, clear and re-seed
-      const hasStaleContracts = stored.length > 0 && stored.some(
-        c => c.client !== wallet && c.freelancer !== wallet
-      )
-
-      if (stored.length === 0 || hasStaleContracts) {
-        // Clear stale data and seed fresh with real wallet address
-        localStorage.removeItem(`tw_contracts_${wallet}`)
-        const demo = buildDemoContracts(wallet)
-        demo.forEach(c => addContract(wallet, c))
-        setContracts(demo)
-      } else {
-        setContracts(stored)
-      }
+      setContracts(stored)
 
       addToast('Wallet connected', 'success', '🔗')
       setWalletOpen(false)
@@ -190,14 +191,6 @@ export default function App() {
           onView={handleView}
           setPage={setPage}
           wallet={wallet}
-          onAction={async (contract, action) => {
-            // Quick approve directly from dashboard
-            const fakeTxHash = 'DEMO_' + Math.random().toString(36).slice(2, 18).toUpperCase()
-            const updated = applyApprove(contract, fakeTxHash)
-            updateContract(wallet, updated)
-            setContracts(prev => prev.map(c => c.id === updated.id ? updated : c))
-            addToast(`Payment released for "${contract.title}"`, 'success', '✅')
-          }}
         />
       )}
       {page === 'create' && (
@@ -264,86 +257,6 @@ export default function App() {
       <Toast toasts={toasts} />
     </>
   )
-}
-
-// ── Demo contract seeder — uses the real wallet address ──────────────────────
-// This ensures isClient/isFreelancer comparisons work correctly in demo mode.
-function buildDemoContracts(wallet) {
-  const now = new Date()
-  const future = (days) => new Date(now.getTime() + days * 86400000).toISOString().split('T')[0]
-  const past   = (days) => new Date(now.getTime() - days * 86400000).toISOString().split('T')[0]
-
-  return [
-    {
-      id: 'TW-A1B2C3',
-      title: 'DeFi Dashboard UI',
-      client: wallet,                        // ← real wallet = you are the client
-      freelancer: 'GFREELANCER7KPQSTELLAR56789ABCDEF12',
-      arbitrator: 'GARBITRATOR3MNRSTELLAR123TRUSTWORK78',
-      amount: '2500',
-      token: 'XLM',
-      desc: 'Build a responsive DeFi dashboard with wallet integration, token swaps, and portfolio tracking.',
-      deadline: future(7),
-      reviewPeriod: '7',
-      status: 'SUBMITTED',                   // ← work already submitted, client needs to act
-      createdAt: past(20),
-      submittedAt: past(2),
-      submissionNote: 'All features implemented and tested. Setup instructions in the README.',
-      deliverables: [
-        { type: 'link',  url: 'https://defi-dashboard-demo.vercel.app', label: 'Live Demo' },
-        { type: 'repo',  url: 'https://github.com/freelancer/defi-dashboard', label: 'Source Code' },
-        { type: 'video', url: 'https://loom.com/share/abc123', label: 'Walkthrough Video' },
-      ],
-      enableArbitrator: true,
-    },
-    {
-      id: 'TW-D4E5F6',
-      title: 'Smart Contract Audit',
-      client: wallet,
-      freelancer: 'GFREELANCER9XYZSTELLAR789DEMO123456',
-      amount: '1800',
-      token: 'XLM',
-      desc: 'Full security audit of Soroban escrow contract including vulnerability assessment and report.',
-      deadline: future(18),
-      reviewPeriod: '5',
-      status: 'ACTIVE',
-      createdAt: past(5),
-      enableArbitrator: false,
-    },
-    {
-      id: 'TW-G7H8I9',
-      title: 'NFT Marketplace Backend',
-      client: wallet,
-      freelancer: 'GFREELANCERHKL3STELLAR9XYZTRUSTWORK',
-      arbitrator: 'GARBITRATOR3MNRSTELLAR123TRUSTWORK78',
-      amount: '4200',
-      token: 'XLM',
-      desc: 'REST API for NFT marketplace with minting, listing, bidding, and transaction history.',
-      deadline: past(5),
-      reviewPeriod: '7',
-      status: 'DISPUTED',
-      createdAt: past(40),
-      submittedAt: past(10),
-      disputeReason: 'Delivered work does not match agreed specifications.',
-      disputedAt: past(3),
-      enableArbitrator: true,
-    },
-    {
-      id: 'TW-J1K2L3',
-      title: 'Token Vesting Contract',
-      client: wallet,
-      freelancer: 'GFREELANCERMNP7STELLAR4QRSTRUSTWORK',
-      amount: '3100',
-      token: 'XLM',
-      desc: 'Soroban smart contract for token vesting with cliff, linear release, and admin controls.',
-      deadline: past(30),
-      reviewPeriod: '5',
-      status: 'COMPLETED',
-      createdAt: past(60),
-      completedAt: past(32),
-      enableArbitrator: false,
-    },
-  ]
 }
 
 // ── Chat Invite Landing ───────────────────────────────────────────────────────

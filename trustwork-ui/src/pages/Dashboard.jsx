@@ -4,9 +4,8 @@ import { CONTRACT_STATES, formatXLM } from '../utils/contract'
 
 const TABS = ['All', 'Active', 'Submitted', 'Completed', 'Disputed']
 
-export default function Dashboard({ contracts, onView, setPage, wallet, onAction }) {
+export default function Dashboard({ contracts, onView, setPage, wallet }) {
   const [tab, setTab] = useState('All')
-  const [loading, setLoading] = useState(null)
 
   const filtered = tab === 'All'
     ? contracts
@@ -24,16 +23,9 @@ export default function Dashboard({ contracts, onView, setPage, wallet, onAction
     volume: contracts.reduce((sum, c) => sum + Number(c.amount || 0), 0),
   }
 
-  async function handleApprove(e, contract) {
+  function handleDispute(e, contract) {
     e.stopPropagation()
-    setLoading(contract.id)
-    await onAction?.(contract, 'approve')
-    setLoading(null)
-  }
-
-  async function handleDispute(e, contract) {
-    e.stopPropagation()
-    onView(contract) // open contract detail → chat tab has the dispute form
+    onView(contract)
   }
 
   return (
@@ -95,10 +87,9 @@ export default function Dashboard({ contracts, onView, setPage, wallet, onAction
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
                     className="btn btn-success btn-full"
-                    disabled={loading === c.id}
-                    onClick={(e) => handleApprove(e, c)}
+                    onClick={(e) => { e.stopPropagation(); onView(c) }}
                   >
-                    {loading === c.id ? '⏳...' : '✅ Approve & Pay'}
+                    ✅ Review & Approve
                   </button>
                   <button
                     className="btn btn-danger btn-sm"
