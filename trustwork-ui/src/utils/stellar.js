@@ -146,7 +146,11 @@ async function withRetry(fn, maxRetries = 2, delayMs = 2000) {
 export const NETWORK        = import.meta.env.VITE_STELLAR_NETWORK     || 'testnet'
 export const RPC_URL        = import.meta.env.VITE_RPC_URL             || 'https://soroban-testnet.stellar.org'
 export const CONTRACT_ID    = import.meta.env.VITE_CONTRACT_ID         || ''
-export const NET_PASSPHRASE = import.meta.env.VITE_NETWORK_PASSPHRASE  || Networks.TESTNET
+
+// IMPORTANT: Always use the SDK constant directly — never read from .env
+// Reading from .env can introduce trailing whitespace/newlines that cause
+// Freighter to reject the transaction with "Signing not possible" error.
+export const NET_PASSPHRASE = NETWORK === 'mainnet' ? Networks.PUBLIC : Networks.TESTNET
 
 export const EXPLORER_BASE = NETWORK === 'mainnet'
   ? 'https://stellar.expert/explorer/public'
