@@ -56,19 +56,34 @@ export function useWallet() {
   // On mount: detect Freighter and restore session if already allowed
   useEffect(() => {
     async function init() {
-      try {
-        // isConnected() returns { isConnected: bool } in v6
-        const connResult = await isConnected()
-        const hasExtension = connResult?.isConnected === true
+      // Freighter injects into the page asynchronously after load.
+      // We retry a few times with increasing delays before giving up.
+      let hasExtension = false
 
-        if (!hasExtension) {
-          setInstalled(false)
-          return
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          const connResult = await isConnected()
+          if (connResult?.isConnected === true) {
+            hasExtension = true
+            break
+          }
+        } catch { /* ignore */ }
+
+        // Wait before retrying: 200ms, 400ms, 700ms, 1200ms
+        if (attempt < 4) {
+          await delay([200, 400, 700, 1200][attempt])
         }
+      }
 
-        setInstalled(true)
+      if (!hasExtension) {
+        setInstalled(false)
+        return
+      }
 
-        // Check if user already approved this site
+      setInstalled(true)
+
+      // Check if user already approved this site
+      try {
         const allowResult = await isAllowed()
         if (allowResult?.isAllowed) {
           const addrResult = await getAddress()
@@ -81,9 +96,7 @@ export function useWallet() {
             )
           }
         }
-      } catch {
-        setInstalled(false)
-      }
+      } catch { /* session restore failed silently */ }
     }
     init()
   }, [])
@@ -103,7 +116,14 @@ export function useWallet() {
       }
 
       // ── Real Freighter ─────────────────────────────────────────────────────
-      const connResult = await isConnected()
+      // Re-check in case extension loaded after initial mount detection
+      let connResult
+      for (let attempt = 0; attempt < 3; attempt++) {
+        connResult = await isConnected()
+        if (connResult?.isConnected) break
+        await delay(300)
+      }
+
       if (!connResult?.isConnected) {
         setInstalled(false)
         setError('Freighter wallet extension is not installed. Please install it from the Chrome Web Store or Firefox Add-ons and try again.')

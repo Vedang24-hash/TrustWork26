@@ -149,6 +149,14 @@ export default function WalletModal({ walletState, onClose }) {
           Install Freighter →
         </a>
 
+        <button
+          className="btn btn-secondary btn-full"
+          style={{ marginBottom: 12 }}
+          onClick={() => connect('freighter')}
+        >
+          🔄 I already have it — Try Again
+        </button>
+
         <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: 12 }}>
           or
         </div>
