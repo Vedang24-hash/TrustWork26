@@ -101,7 +101,11 @@ a { color: var(--accent); text-decoration: none; }
   letter-spacing: -0.02em;
 }
 .navbar-title span { color: var(--accent); }
-.navbar-nav { display: flex; align-items: center; gap: 4px; }
+.navbar-nav { 
+  display: flex; 
+  align-items: center; 
+  gap: 4px; 
+}
 .nav-btn {
   background: none;
   border: none;
@@ -133,6 +137,13 @@ a { color: var(--accent); text-decoration: none; }
   border-radius: 50%;
   background: var(--green);
   box-shadow: 0 0 6px var(--green);
+}
+/* Wallet button in navbar-nav */
+.navbar-nav .wallet-menu {
+  margin-right: 8px;
+}
+.navbar-nav .btn-primary {
+  margin-right: 8px;
 }
 
 /* ===== BUTTONS ===== */
@@ -593,51 +604,67 @@ a { color: var(--accent); text-decoration: none; }
     height: auto;
     flex-wrap: wrap;
     gap: 0;
-    /* Prevent navbar itself from overflowing */
     width: 100%;
     max-width: 100vw;
     overflow: hidden;
   }
 
-  /* Top row: brand + wallet — each takes what it needs, no overflow */
-  .navbar-brand { padding: 12px 0; flex-shrink: 0; }
-  .navbar-right { padding: 12px 0; flex-shrink: 0; max-width: 50%; }
+  /* Brand takes full width on top */
+  .navbar-brand { 
+    padding: 12px 0; 
+    flex-shrink: 0;
+    width: 100%;
+  }
 
-  /* Nav links — full-width second row, evenly spaced, no scroll needed */
+  /* Nav links with wallet button first — full-width second row */
   .navbar-nav {
     order: 3;
     width: 100%;
     border-top: 1px solid var(--border);
     padding: 4px 0;
-    gap: 0;
+    gap: 4px;
     display: flex;
-    justify-content: space-around; /* spread items evenly across full width */
-    overflow: hidden;              /* no horizontal scroll */
+    overflow: hidden;
   }
 
   .nav-btn {
     padding: 8px 6px;
     font-size: 0.75rem;
     white-space: nowrap;
-    flex: 1;                       /* each button takes equal width */
+    flex: 1;
     text-align: center;
     border-radius: 6px;
   }
-
-  /* Shrink wallet badge — truncate address if needed */
-  .wallet-badge {
+  
+  /* Wallet button styling on mobile - first in nav */
+  .navbar-nav .btn-primary {
+    padding: 8px 6px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    flex: 1;
+    margin-right: 0;
+  }
+  
+  /* Wallet badge styling on mobile - first in nav */
+  .navbar-nav .wallet-menu {
+    flex: 1;
+    margin-right: 0;
+  }
+  
+  .navbar-nav .wallet-badge {
     font-size: 0.7rem;
-    padding: 5px 8px;
-    max-width: 140px;
+    padding: 6px 8px;
+    width: 100%;
+    justify-content: center;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  /* Wallet dropdown — anchor to right edge, never overflow left */
+  /* Wallet dropdown — anchor to left edge on mobile */
   .wallet-dropdown {
-    right: 0;
-    left: auto;
+    left: 0;
+    right: auto;
     min-width: 180px;
     max-width: calc(100vw - 28px);
   }

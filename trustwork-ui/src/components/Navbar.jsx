@@ -29,8 +29,9 @@ export default function Navbar({ page, setPage, wallet, onOpenWallet, onDisconne
         <span className="navbar-title">Trust<span>Work</span></span>
       </div>
 
-      {/* Wallet — right side of top row */}
-      <div className="navbar-right">
+      {/* Nav links with wallet button first */}
+      <div className="navbar-nav">
+        {/* Wallet button — first (leftmost) */}
         {wallet ? (
           <div className="wallet-menu" ref={menuRef}>
             <div
@@ -67,10 +68,8 @@ export default function Navbar({ page, setPage, wallet, onOpenWallet, onDisconne
             Connect
           </button>
         )}
-      </div>
-
-      {/* Nav links — wraps to second row on mobile via CSS */}
-      <div className="navbar-nav">
+        
+        {/* Other nav items */}
         {navItems.map(item => (
           <button
             key={item.id}
