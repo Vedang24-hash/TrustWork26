@@ -171,20 +171,20 @@ TrustWork provides a **personalized metrics dashboard** for each user upon walle
 
 ### 🔄 Table 2 — User Feedback & Reviews
 
-| User Name | User Email | User Wallet Address | Rating | User Feedback |
-|-----------|------------|---------------------|--------|---------------|
-| Aniket Bhilare | bhilareaniket2424@gmail.com | `GDRTJRMXK43GQL5EE25QGULXYRVLJ646E5SCXRX376VMSLSSKSLWONM7` | 5/5 | "Your website is a solid and well-executed project that clearly demonstrates your understanding of modern web development and deployment practices." |
-| Nisha Bahirat | bahirat.nisha@gmail.com | `GBTT2S5AYMJ26RAMZNMWJR6M3HL6DTJCFQQMTRFNVL3F6Q7AGVWBBJQN` | 5/5 | "Good UI Better user experience" |
-| Rajas Badade | badaderajas66@gmail.com | `GAGPZSWGILAKL5TZDBPMZXFNMDQW4PU6U6AJLMV3WL53V3R2IDWLNY7X` | 5/5 | "The website offers a clean and user-friendly interface, making navigation simple and intuitive." |
-| Nishit Bhalerao | nishitbhalerao@gmail.com | `GBLSGNNNNFIHR2745JID5AW42TAKULJ7VJWCQBHGUWQKCMCQWLGZ7PVN` | 5/5 | "Everything is perfect and specially UI is outstanding" |
-| Kunal Sathe | kunalsathe18@gmail.com | `GAOFS35LNKWZBY7RJKBJVHYDTL3SX2NKVDP5HTCPUEFC6L3Q4YLJLWPA` | 5/5 | "Good Application!!" |
-| Omkar Jagtap | omkarjagtap2105@gmail.com | `GAF57COCDLHE273YGSB6YUIDHWU53SJUJ522CLEDVH4SFPAWRR2WTAFZ` | 4/5 | "Nice Work, had a good experience" |
-| Vineet Kadam | vineetkadam24@gmail.com | `GAXJUGOZH3JBDMWJZQKSVE4JBP7KCN76CX66KAUJLWPWLYFHES5TF6F2` | 5/5 | "User friendly UI/UX" |
-| Pranali Bahirat | bahirat.prananli22@gmail.com | `GAWOMT3S7OHVZRJMS4VND2HKSBNMBEWKBQSSELPPFL7SH4D63E2WGAK` | 3/5 | "Good Work" |
-| Durvesh Dongare | durveshdongare@gmail.com | `GD2CFOJ4ZMWDE4WBUBP3Z6WRDPWMUAT5B2FK2BQSBCIWV3USTCXEA3PJ` | 4/5 | "Its the best one no changes needed i love it soo much excellent work done" |
-| Sharayu Deogaonkar | deogaonkarsharayu@gmail.com | `GDRYBNNYDYHKB7Q2OKGAPSCL4K7W32LE2FXZTRTJHDZGMMAX6Y5FUA5RW` | 5/5 | "Its A Perfect website" |
+| User Name | User Email | User Wallet Address | Rating | Bugs/Issues Found | Suggested Changes | User Feedback |
+|-----------|------------|---------------------|--------|-------------------|-------------------|---------------|
+| Aniket Bhilare | bhilareaniket2424@gmail.com | `GDRTJRMXK43GQL5EE25QGULXYRVLJ646E5SCXRX376VMSLSSKSLWONM7` | 5/5 | No | I don't think so | "Your website is a solid and well-executed project that clearly demonstrates your understanding of modern web development and deployment practices." |
+| Nisha Bahirat | bahirat.nisha@gmail.com | `GBTT2S5AYMJ26RAMZNMWJR6M3HL6DTJCFQQMTRFNVL3F6Q7AGVWBBJQN` | 5/5 | No | Absolutely not | "Good UI Better user experience" |
+| Rajas Badade | badaderajas66@gmail.com | `GAGPZSWGILAKL5TZDBPMZXFNMDQW4PU6U6AJLMV3WL53V3R2IDWLNY7X` | 5/5 | No | Its good | "The website offers a clean and user-friendly interface, making navigation simple and intuitive." |
+| Nishit Bhalerao | nishitbhalerao@gmail.com | `GBLSGNNNNFIHR2745JID5AW42TAKULJ7VJWCQBHGUWQKCMCQWLGZ7PVN` | 5/5 | No | No the application is good | "Everything is perfect and specially UI is outstanding" |
+| Kunal Sathe | kunalsathe18@gmail.com | `GAOFS35LNKWZBY7RJKBJVHYDTL3SX2NKVDP5HTCPUEFC6L3Q4YLJLWPA` | 5/5 | No | No i had a good experience while using it | "Good Application!!" |
+| Omkar Jagtap | omkarjagtap2105@gmail.com | `GAF57COCDLHE273YGSB6YUIDHWU53SJUJ522CLEDVH4SFPAWRR2WTAFZ` | 4/5 | No | I don't think so | "Nice Work, had a good experience" |
+| Vineet Kadam | vineetkadam24@gmail.com | `GAXJUGOZH3JBDMWJZQKSVE4JBP7KCN76CX66KAUJLWPWLYFHES5TF6F2` | 5/5 | No | I don't think it is lacking in any feature | "User friendly UI/UX" |
+| Pranali Bahirat | bahirat.prananli22@gmail.com | `GAWOMT3S7OHVZRJMS4VND2HKSBNMBEWKBQSSELPPFL7SH4D63E2WGAK` | 3/5 | No | Not really | "Good Work" |
+| Durvesh Dongare | durveshdongare@gmail.com | `GD2CFOJ4ZMWDE4WBUBP3Z6WRDPWMUAT5B2FK2BQSBCIWV3USTCXEA3PJ` | 4/5 | No | I don't think it lacks anywhere | "Its the best one no changes needed i love it soo much excellent work done" |
+| Sharayu Deogaonkar | deogaonkarsharayu@gmail.com | `GDRYBNNYDYHKB7Q2OKGAPSCL4K7W32LE2FXZTRTJHDZGMMAX6Y5FUA5RW` | 5/5 | No | Definitely Not | "Its A Perfect website" |
 
-**Note:** All 32 users reported **zero bugs/errors** during testing. Average rating: **4.6/5**
+**Note:** All 32 users reported **zero bugs/errors** and **no feature gaps or changes needed**. Average rating: **4.6/5**. Since users did not report any issues or suggest improvements, no bug fixes or feature updates were implemented during the testing phase.
 
 ---
 
