@@ -128,7 +128,7 @@ TrustWork26/
 
 We collected feedback from **30+ real users** who tested TrustWork on Stellar Testnet.
 
-**→ [View Full Feedback Spreadsheet](https://docs.google.com/spreadsheets/d/10T2ffMEWhxmX97yFe9HG5z5gC-0IqlprxsF2_YdVZj4/edit?usp=sharing)**
+**→ [View Full Feedback Spreadsheet](https://docs.google.com/spreadsheets/d/1E9UrmVm21OFXh9_YtSPLbzr0a24UlV_FnhZQf5-Ntro/edit?resourcekey=&gid=370940814#gid=370940814)**
 
 ---
 
@@ -540,7 +540,7 @@ This project fulfills all required submission criteria:
 | Requirement | Status | Location |
 |-------------|--------|----------|
 | **Live Demo Link** | ✅ Complete | [https://trust-work26.vercel.app](https://trust-work26.vercel.app) |
-| **30+ User Wallet Addresses** | ✅ Complete | [User Feedback Spreadsheet](https://docs.google.com/spreadsheets/d/10T2ffMEWhxmX97yFe9HG5z5gC-0IqlprxsF2_YdVZj4/edit?usp=sharing) + Tables in README |
+| **30+ User Wallet Addresses** | ✅ Complete | [User Feedback Spreadsheet](https://docs.google.com/spreadsheets/d/1E9UrmVm21OFXh9_YtSPLbzr0a24UlV_FnhZQf5-Ntro/edit?resourcekey=&gid=370940814#gid=370940814) + Tables in README |
 | **Metrics Dashboard** | ✅ Complete | User-specific dashboard (connect wallet at live demo) |
 | **Monitoring Dashboard** | ✅ Complete | [Vercel Analytics](https://vercel.com/dashboard) + [GitHub Actions](https://github.com/Vedang24-hash/TrustWork26/actions) + [Stellar Expert](https://stellar.expert/explorer/testnet/contract/CBEUUVKJD2FM5CL57COXJV55HXYSEDW7VXRBJFWKDNZZRSHBMWQZUNQS) |
 | **Security Checklist** | ✅ Complete | [SECURITY_CHECKLIST.md](./SECURITY_CHECKLIST.md) |
@@ -570,7 +570,7 @@ MIT — free to use, modify, and distribute.
 
 <div align="center">
 
-[🌐 Live App](https://trust-work26.vercel.app) &nbsp;•&nbsp; [📹 Demo Video](https://github.com/Vedang24-hash/TrustWork26/raw/master/ScreenRecording/demo.mp4) &nbsp;•&nbsp; [📊 User Feedback](https://docs.google.com/spreadsheets/d/10T2ffMEWhxmX97yFe9HG5z5gC-0IqlprxsF2_YdVZj4/edit?usp=sharing) &nbsp;•&nbsp; [🐛 Issues](https://github.com/Vedang24-hash/TrustWork26/issues)
+[🌐 Live App](https://trust-work26.vercel.app) &nbsp;•&nbsp; [📹 Demo Video](https://github.com/Vedang24-hash/TrustWork26/raw/master/ScreenRecording/demo.mp4) &nbsp;•&nbsp; [📊 User Feedback](https://docs.google.com/spreadsheets/d/1E9UrmVm21OFXh9_YtSPLbzr0a24UlV_FnhZQf5-Ntro/edit?resourcekey=&gid=370940814#gid=370940814) &nbsp;•&nbsp; [🐛 Issues](https://github.com/Vedang24-hash/TrustWork26/issues)
 
 Built with ❤️ on Stellar
 
