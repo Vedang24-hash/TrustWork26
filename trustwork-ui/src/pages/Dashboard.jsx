@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import ContractCard from '../components/ContractCard'
 import { CONTRACT_STATES, formatXLM } from '../utils/contract'
+import { useScrollAnimation, useStaggeredAnimation } from '../hooks/useScrollAnimation'
 
 const TABS = ['All', 'Active', 'Submitted', 'Completed', 'Disputed']
 
@@ -23,6 +24,10 @@ export default function Dashboard({ contracts, onView, setPage, wallet }) {
     volume: contracts.reduce((sum, c) => sum + Number(c.amount || 0), 0),
   }
 
+  // Scroll animations
+  const headerAnim = useScrollAnimation({ threshold: 0.2 })
+  const statsAnim = useScrollAnimation({ threshold: 0.1 })
+
   function handleDispute(e, contract) {
     e.stopPropagation()
     onView(contract)
@@ -30,7 +35,10 @@ export default function Dashboard({ contracts, onView, setPage, wallet }) {
 
   return (
     <div className="page">
-      <div className="flex-between mb-32">
+      <div 
+        ref={headerAnim.ref}
+        className={`flex-between mb-32 scroll-fade-in ${headerAnim.inView ? 'visible' : ''}`}
+      >
         <div>
           <h2 className="page-title">Dashboard</h2>
           <p className="page-subtitle">Manage your escrow contracts</p>
@@ -106,7 +114,10 @@ export default function Dashboard({ contracts, onView, setPage, wallet }) {
       )}
 
       {/* Stats */}
-      <div className="stats-grid">
+      <div 
+        ref={statsAnim.ref}
+        className={`stats-grid scroll-fade-in ${statsAnim.inView ? 'visible' : ''}`}
+      >
         <div className="stat-card">
           <div className="stat-label">Total Contracts</div>
           <div className="stat-value">{stats.total}</div>
@@ -166,9 +177,19 @@ export default function Dashboard({ contracts, onView, setPage, wallet }) {
         </div>
       ) : (
         <div className="contract-grid">
-          {filtered.map(c => (
-            <ContractCard key={c.id} contract={c} onClick={onView} />
-          ))}
+          {filtered.map((c, index) => {
+            const animation = useStaggeredAnimation(index, 100)
+            return (
+              <div
+                key={c.id}
+                ref={animation.ref}
+                className={`scroll-fade-in ${animation.inView ? 'visible' : ''}`}
+                style={animation.style}
+              >
+                <ContractCard contract={c} onClick={onView} />
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

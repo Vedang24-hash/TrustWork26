@@ -1,3 +1,5 @@
+import { useScrollAnimation, useStaggeredAnimation } from '../hooks/useScrollAnimation'
+
 export default function Home({ onConnect, wallet, setPage }) {
   const features = [
     { icon: '🔒', bg: 'var(--accent-glow)', title: 'Escrow Protection', desc: 'Funds are locked in a Soroban smart contract before work begins. No trust required.' },
@@ -12,6 +14,11 @@ export default function Home({ onConnect, wallet, setPage }) {
     { num: '3', title: 'Work & Submit', desc: 'Freelancer completes the project and submits deliverables.' },
     { num: '4', title: 'Approve & Pay', desc: 'Client approves the work and funds are instantly released.' },
   ]
+
+  // Scroll animations
+  const heroAnimation = useScrollAnimation({ threshold: 0.2 })
+  const featuresHeaderAnim = useScrollAnimation({ threshold: 0.2 })
+  const stepsHeaderAnim = useScrollAnimation({ threshold: 0.2 })
 
   return (
     <div>
@@ -44,30 +51,51 @@ export default function Home({ onConnect, wallet, setPage }) {
       {/* Features */}
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px' }}>
         <div className="features-grid">
-          {features.map(f => (
-            <div className="feature-card" key={f.title}>
-              <div className="feature-icon" style={{ background: f.bg }}>{f.icon}</div>
-              <div className="feature-title">{f.title}</div>
-              <div className="feature-desc">{f.desc}</div>
-            </div>
-          ))}
+          {features.map((f, index) => {
+            const animation = useStaggeredAnimation(index, 150)
+            return (
+              <div 
+                ref={animation.ref}
+                className={`feature-card scroll-fade-in ${animation.inView ? 'visible' : ''}`}
+                style={animation.style}
+                key={f.title}
+              >
+                <div className="feature-icon" style={{ background: f.bg }}>{f.icon}</div>
+                <div className="feature-title">{f.title}</div>
+                <div className="feature-desc">{f.desc}</div>
+              </div>
+            )
+          })}
         </div>
       </div>
 
       {/* How it works */}
       <div className="how-it-works">
-        <h2 style={{ textAlign: 'center', marginBottom: 8 }}>How It Works</h2>
-        <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: 32 }}>
-          Four simple steps to secure, trustless freelance collaboration
-        </p>
+        <div 
+          ref={stepsHeaderAnim.ref}
+          className={`scroll-fade-in ${stepsHeaderAnim.inView ? 'visible' : ''}`}
+        >
+          <h2 style={{ textAlign: 'center', marginBottom: 8 }}>How It Works</h2>
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: 32 }}>
+            Four simple steps to secure, trustless freelance collaboration
+          </p>
+        </div>
         <div className="how-steps">
-          {steps.map(s => (
-            <div className="how-step" key={s.num}>
-              <div className="how-step-num">{s.num}</div>
-              <div className="how-step-title">{s.title}</div>
-              <div className="how-step-desc">{s.desc}</div>
-            </div>
-          ))}
+          {steps.map((s, index) => {
+            const animation = useStaggeredAnimation(index, 200)
+            return (
+              <div 
+                ref={animation.ref}
+                className={`how-step scroll-zoom-in ${animation.inView ? 'visible' : ''}`}
+                style={animation.style}
+                key={s.num}
+              >
+                <div className="how-step-num">{s.num}</div>
+                <div className="how-step-title">{s.title}</div>
+                <div className="how-step-desc">{s.desc}</div>
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

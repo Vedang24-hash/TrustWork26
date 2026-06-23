@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import ActionPanel from '../components/ActionPanel'
 import ContractChat from '../components/ContractChat'
 import { useChat } from '../hooks/useChat'
+import { useScrollAnimation } from '../hooks/useScrollAnimation'
 import {
   truncateAddr, formatXLM, formatDate, daysRemaining,
   CONTRACT_STATES,
@@ -21,6 +22,10 @@ const TYPE_ICONS = { link: '🔗', repo: '📦', doc: '📄', figma: '🎨', vid
 export default function ContractDetail({ contract, wallet, onUpdate, setPage, openTx, txSubmitting, txSuccess, txError, defaultTab }) {
   const [activeTab, setActiveTab] = useState(defaultTab || 'overview')
   const { postSystemEvent } = useChat(contract?.id)
+
+  // Scroll animations
+  const headerAnim = useScrollAnimation({ threshold: 0.2 })
+  const detailsAnim = useScrollAnimation({ threshold: 0.1 })
 
   // Sync state from chain on load to catch any out-of-sync local state
   useEffect(() => {
@@ -161,7 +166,10 @@ export default function ContractDetail({ contract, wallet, onUpdate, setPage, op
     <div className="page">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="detail-header">
+      <div 
+        ref={headerAnim.ref}
+        className={`detail-header scroll-fade-in ${headerAnim.inView ? 'visible' : ''}`}
+      >
         <div>
           <button className="btn btn-secondary btn-sm mb-16" onClick={() => setPage('dashboard')}>
             ← Back
@@ -255,7 +263,10 @@ export default function ContractDetail({ contract, wallet, onUpdate, setPage, op
         <div className="detail-grid">
           <div>
             {/* Escrow visual */}
-            <div className="escrow-visual mb-24">
+            <div 
+              ref={detailsAnim.ref}
+              className={`escrow-visual mb-24 scroll-zoom-in ${detailsAnim.inView ? 'visible' : ''}`}
+            >
               <div className="escrow-amount">{formatXLM(contract.amount)}</div>
               <div className="escrow-label">Locked in Escrow</div>
               <div className="escrow-locked">🔒 Soroban Smart Contract · Stellar Network</div>

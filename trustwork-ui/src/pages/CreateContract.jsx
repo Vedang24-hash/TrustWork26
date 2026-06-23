@@ -7,11 +7,16 @@ import {
 import {
   formatXLM, formatContractId, CONTRACT_STATES,
 } from '../utils/contract'
+import { useScrollAnimation, useStaggeredAnimation } from '../hooks/useScrollAnimation'
 
 export default function CreateContract({ onCreate, wallet, setPage, onConnect, openTx, txSubmitting, txSuccess, txError }) {
   const [loading, setLoading] = useState(false)
   const [deployed, setDeployed] = useState(null)
   const [contractTest, setContractTest] = useState(null)
+
+  // Scroll animations
+  const headerAnim = useScrollAnimation({ threshold: 0.2 })
+  const formAnim = useScrollAnimation({ threshold: 0.1 })
 
   async function testContract() {
     if (!wallet) { onConnect(); return }
@@ -234,7 +239,10 @@ export default function CreateContract({ onCreate, wallet, setPage, onConnect, o
 
   return (
     <div className="page-narrow">
-      <div className="mb-32">
+      <div 
+        ref={headerAnim.ref}
+        className={`mb-32 scroll-fade-in ${headerAnim.inView ? 'visible' : ''}`}
+      >
         <button className="btn btn-secondary btn-sm mb-16" onClick={() => setPage('dashboard')}>← Back</button>
         <h2 className="page-title">Contract Builder</h2>
         <p className="page-subtitle">Deploy a Soroban escrow contract on Stellar {NETWORK.toUpperCase()}</p>
@@ -305,7 +313,10 @@ export default function CreateContract({ onCreate, wallet, setPage, onConnect, o
         </div>
       )}
 
-      <div className="card">
+      <div 
+        ref={formAnim.ref}
+        className={`card scroll-fade-in ${formAnim.inView ? 'visible' : ''}`}
+      >
         <ContractForm onSubmit={handleCreate} loading={loading} wallet={wallet} />
       </div>
     </div>

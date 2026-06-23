@@ -25,7 +25,9 @@ export default function Navbar({ page, setPage, wallet, onOpenWallet, onDisconne
     <nav className="navbar">
       {/* Brand */}
       <div className="navbar-brand" onClick={() => setPage('home')}>
-        <div className="navbar-logo">⚡</div>
+        <div className="navbar-logo">
+          <img src="/logo-icon.svg" alt="TrustWork Logo" />
+        </div>
         <span className="navbar-title">Trust<span>Work</span></span>
       </div>
 
