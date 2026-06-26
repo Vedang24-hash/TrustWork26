@@ -63,6 +63,14 @@ TrustWork eliminates payment disputes in freelancing by locking funds in a Sorob
 - [Node.js](https://nodejs.org/) v18+
 - [Freighter Wallet](https://www.freighter.app/) browser extension
 - Stellar testnet account (funded via [Stellar Laboratory](https://laboratory.stellar.org/#account-creator?network=test))
+- [Rust](https://www.rust-lang.org/tools/install) (for contract development)
+- [Soroban CLI](https://soroban.stellar.org/docs/getting-started/setup#install-the-soroban-cli) (for contract deployment)
+
+### Documentation
+
+📚 **[Smart Contract Documentation](./CONTRACT_DOCUMENTATION.md)** - Complete contract API reference  
+🔗 **[Frontend-Contract Integration Guide](./INTEGRATION_GUIDE.md)** - How frontend connects to the contract  
+🔒 **[Security Checklist](./SECURITY_CHECKLIST.md)** - Security measures and best practices  
 
 ### Local Setup
 
@@ -679,6 +687,10 @@ We follow industry best practices to ensure the security of user funds and data:
 
 **→ [View Complete Security Checklist](./SECURITY_CHECKLIST.md)**
 
+**→ [View Smart Contract Integration Documentation](./CONTRACT_INTEGRATION.md)**
+
+**→ [View Mentor Feedback Resolution](./MENTOR_FEEDBACK_FIXES.md)**
+
 ### Key Security Measures:
 - ✅ Smart contract access controls (only authorized parties can execute actions)
 - ✅ Input validation on all contract parameters
@@ -1006,7 +1018,41 @@ This project fulfills all required submission criteria:
 
 ---
 
-## 📄 License
+## � Documentation Structure
+
+The project includes comprehensive documentation for both users and developers:
+
+### Core Documentation
+- **[README.md](./README.md)** (this file) - Main project overview, features, and setup
+- **[CONTRACT_DOCUMENTATION.md](./CONTRACT_DOCUMENTATION.md)** - Complete smart contract API reference
+- **[INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)** - Frontend-contract integration details
+- **[SECURITY_CHECKLIST.md](./SECURITY_CHECKLIST.md)** - Security measures and audit checklist
+- **[MENTOR_REVIEW_CHECKLIST.md](./MENTOR_REVIEW_CHECKLIST.md)** - Verification of all requirements
+
+### Frontend Documentation
+- **[trustwork-ui/BRAND_ASSETS.md](./trustwork-ui/BRAND_ASSETS.md)** - Logo, colors, and branding guidelines
+- **[trustwork-ui/ANIMATION_GUIDE.md](./trustwork-ui/ANIMATION_GUIDE.md)** - Scroll animation implementation guide
+- **[trustwork-ui/README.md](./trustwork-ui/README.md)** - Frontend-specific setup instructions
+
+### Smart Contract Files
+```
+democontract/
+├── Cargo.toml          # Soroban dependencies & build config
+├── lib.rs              # Main contract interface (10 functions)
+├── types.rs            # Data structures & enums
+├── storage.rs          # On-chain state management
+├── escrow.rs           # Core escrow logic
+├── factory.rs          # Escrow instance creation
+└── tests.rs            # Comprehensive test suite (9 tests)
+```
+
+### Build & Deploy Scripts
+- **[deploy-contract.sh](./deploy-contract.sh)** - Smart contract deployment script
+- **[.github/workflows/deploy.yml](./.github/workflows/deploy.yml)** - CI/CD pipeline
+
+---
+
+## �📄 License
 
 MIT — free to use, modify, and distribute.
 

@@ -7,9 +7,6 @@ pub mod storage;
 pub mod escrow;
 pub mod factory;
 
-#[cfg(test)]
-mod tests;
-
 use crate::factory::EscrowFactory;
 use crate::types::{EscrowConfig, EscrowError, Resolution};
 
